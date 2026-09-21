@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const env = require('./config/env');
 const companyConfig = require('./config/company.config');
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
@@ -60,6 +61,9 @@ app.get('/api/public/company-info', (req, res) => {
     divisions: companyConfig.divisions
   });
 });
+
+// Mount Application Routes
+app.use('/api/auth', authRoutes);
 
 // 404 Handler
 app.use((req, res) => {

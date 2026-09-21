@@ -1,0 +1,623 @@
+// Prisma Schema for JM Business Hub (Jay Malhar Udyog Samuha)
+// Supports SQLite for fast zero-config dev, and PostgreSQL for production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------------
+// 1. AUTHENTICATION & ACCESS CONTROL
+// -------------------------------------------------------------
+
+model User {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  roleId           String
+  role             Role         @relation(fields: [roleId], references: [id])
+  businessDivision String?      // Optional division lock: 'construction' | 'solar' | 'suppliers' | null (all)
+  isActive         Boolean      @default(true)
+  mustChangePassword Boolean    @default(false)
+  lastLoginAt      DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockoutUntil     DateTime?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  sessions         UserSession[]
+  auditLogs        AuditLog[]   @relation("ActorAuditLogs")
+  tasksAssigned    Task[]       @relation("AssignedTasks")
+  employeeProfile  Employee?
+
+  @@index([email])
+  @@index([roleId])
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // 'Owner', 'Manager', 'Accountant', 'Employee'
+  description String?
+  isSystem    Boolean      @default(true)
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  resource    String           // e.g. 'users', 'financials', 'inventory', 'projects', 'employees', 'quotations'
+  action      String           // e.g. 'create', 'read', 'update', 'delete', 'manage'
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+
+  @@unique([resource, action])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserSession {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// -------------------------------------------------------------
+// 2. AUDIT LOGS (Append-only)
+// -------------------------------------------------------------
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  actorUserId String?
+  actor       User?     @relation("ActorAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String    // 'LOGIN_SUCCESS', 'LOGIN_FAILURE', 'USER_CREATE', 'INVENTORY_ADJUST', etc.
+  entityType  String    // 'User', 'Income', 'Expense', 'Invoice', 'Rental', 'Document'
+  entityId    String?
+  beforeJson  String?   // JSON representation before change
+  afterJson   String?   // JSON representation after change
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 3. HUMAN RESOURCES (Employees)
+// -------------------------------------------------------------
+
+model Employee {
+  id               String       @id @default(uuid())
+  userId           String?      @unique
+  user             User?        @relation(fields: [userId], references: [id])
+  employeeId       String       @unique // e.g. JM-EMP-001
+  name             String
+  phone            String
+  address          String?
+  role             String       // e.g. Site Supervisor, Operator, Technician, Driver, Laborer
+  department       String       // 'Operations', 'Logistics', 'Solar Tech', 'Administration'
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  joiningDate      DateTime
+  salary           Float?       // Monthly salary (Manager has no access, Owner/Accountant only)
+  dailyWage        Float?       // Daily rate for daily-wage staff
+  status           String       @default("Active") // 'Active', 'Deactivated', 'On Leave'
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?    // Soft-deactivate, never hard-delete
+
+  // Relations
+  projectAssignments ProjectEmployee[]
+  appointments       Appointment[]
+  tasks              Task[]
+
+  @@index([businessDivision])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// 4. CRM: CUSTOMERS & LEADS
+// -------------------------------------------------------------
+
+model Customer {
+  id               String       @id @default(uuid())
+  name             String
+  phone            String
+  email            String?
+  address          String?
+  businessDivision String       // Primary division or 'group'
+  customerType     String       @default("Individual") // 'Individual', 'Contractor', 'Commercial', 'Government'
+  notes            String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  projects         Project[]
+  quotations       Quotation[]
+  invoices         Invoice[]
+  rentals          Rental[]
+  originatingLeads Lead[]
+
+  @@index([businessDivision])
+  @@index([phone])
+}
+
+model Lead {
+  id               String       @id @default(uuid())
+  name             String
+  phone            String       // 10-digit Indian phone
+  email            String?
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  requirement      String
+  preferredTime    String?
+  source           String       @default("Website Form") // 'Home Page', 'Rent Equipment Modal', 'Solar Calculator', 'Material Estimator'
+  status           String       @default("NEW") // 'NEW', 'CONTACTED', 'QUOTED', 'WON', 'LOST'
+  assignedTo       String?
+  followUpDate     DateTime?
+  notes            String?
+  convertedCustomerId String?
+  convertedCustomer   Customer? @relation(fields: [convertedCustomerId], references: [id])
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  @@index([businessDivision])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 5. PROJECTS
+// -------------------------------------------------------------
+
+model Project {
+  id               String       @id @default(uuid())
+  name             String
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  customerId       String
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  location         String
+  startDate        DateTime
+  deadline         DateTime?
+  budget           Float        @default(0)
+  amountReceived   Float        @default(0)
+  // Note: amountPending is computed server-side as (budget - amountReceived)
+  progress         Int          @default(0) // 0 - 100 percentage
+  status           String       @default("Planned") // 'Planned', 'Ongoing', 'On Hold', 'Completed', 'Cancelled'
+  materialsUsed    String?      // Notes on materials deployed
+  notes            String?
+  imagesJson       String?      // Stored JSON array of uploaded file paths
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  assignedEmployees ProjectEmployee[]
+  tasks             Task[]
+
+  @@index([businessDivision])
+  @@index([status])
+}
+
+model ProjectEmployee {
+  projectId  String
+  employeeId String
+  roleInProj String?    // e.g. Lead Engineer, Machine Operator
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, employeeId])
+}
+
+// -------------------------------------------------------------
+// 6. INVENTORY & ATOMIC TRANSACTIONS
+// -------------------------------------------------------------
+
+model InventoryItem {
+  id               String       @id @default(uuid())
+  name             String
+  category         String       // 'Aggregates', 'Sand', 'Solar Panels', 'Inverters', 'Equipment Parts', etc.
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  quantity         Float        @default(0) // MUST NEVER BE NEGATIVE
+  unit             String       // 'Brass', 'Tons', 'CFT', 'Units', 'Pieces', 'Meters'
+  purchasePrice    Float        @default(0)
+  sellingPrice     Float        @default(0)
+  supplier         String?
+  minStockLevel    Float        @default(10)
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  transactions     InventoryTransaction[]
+
+  @@index([businessDivision])
+  @@index([category])
+}
+
+model InventoryTransaction {
+  id             String        @id @default(uuid())
+  inventoryItemId String
+  inventoryItem  InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  type           String        // 'STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT'
+  quantity       Float         // Amount changed
+  balanceBefore  Float
+  balanceAfter   Float         // Row check validates >= 0
+  reason         String
+  referenceType  String?       // 'SALE_ORDER', 'PROJECT_DISPATCH', 'DAMAGE', 'SUPPLY_INTAKE'
+  referenceId    String?
+  performedBy    String?       // User ID or name
+  isDemo         Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 7. EQUIPMENT & RENTAL MANAGEMENT
+// -------------------------------------------------------------
+
+model Equipment {
+  id               String       @id @default(uuid())
+  name             String       // e.g. "Heavy Soil Compactor 10T", "Vibratory Roller"
+  equipmentId      String       @unique // e.g. JM-EQ-001
+  category         String       // 'Compactor', 'Roller', 'Excavator', 'Mixer'
+  businessDivision String       @default("construction")
+  status           String       @default("Available") // 'Available', 'Rented', 'Maintenance', 'Unavailable'
+  rentalRatePerDay Float        @default(0)
+  purchaseDate     DateTime?
+  condition        String       @default("Excellent") // 'Excellent', 'Good', 'Needs Service'
+  notes            String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  rentals          Rental[]
+
+  @@index([businessDivision])
+  @@index([status])
+}
+
+model Rental {
+  id               String       @id @default(uuid())
+  equipmentId      String
+  equipment        Equipment    @relation(fields: [equipmentId], references: [id])
+  customerId       String
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  rentalStart      DateTime
+  expectedReturn   DateTime
+  actualReturn     DateTime?
+  rentalAmount     Float        @default(0)
+  depositAmount    Float        @default(0)
+  paymentStatus    String       @default("Pending") // 'Paid', 'Partially Paid', 'Pending'
+  conditionOnReturn String?
+  notes            String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  @@index([equipmentId])
+  @@index([customerId])
+  @@index([expectedReturn])
+}
+
+// -------------------------------------------------------------
+// 8. VEHICLES & EXPENSES
+// -------------------------------------------------------------
+
+model Vehicle {
+  id               String       @id @default(uuid())
+  registrationNo   String       @unique // e.g. MH-12-XX-1234
+  type             String       // 'Dumper', 'Tipper Truck', 'Pickup', 'Crane'
+  driverName       String?
+  businessDivision String       @default("suppliers") // 'suppliers', 'construction', 'solar'
+  lastServiceDate  DateTime?
+  nextServiceDate  DateTime?
+  maintenanceStatus String      @default("Operational") // 'Operational', 'In Service', 'Standby'
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  expenses         VehicleExpense[]
+
+  @@index([businessDivision])
+}
+
+model VehicleExpense {
+  id          String    @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type        String    // 'Fuel', 'Maintenance', 'Insurance', 'Toll', 'Tax'
+  amount      Float
+  date        DateTime
+  description String?
+  receiptUrl  String?
+  isDemo      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([vehicleId])
+  @@index([date])
+}
+
+// -------------------------------------------------------------
+// 9. FINANCIALS: INCOME, EXPENSE & CASH FLOW
+// -------------------------------------------------------------
+
+model Income {
+  id               String       @id @default(uuid())
+  date             DateTime
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  source           String       // 'Rental Payment', 'Solar Project Milestone', 'Stone Supply Batch'
+  customerName     String?
+  amount           Float
+  paymentMethod    String       // 'NEFT/RTGS', 'UPI', 'Cheque', 'Cash'
+  referenceNumber  String?      // Cheque or UPI transaction ID
+  description      String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?    // Soft-delete with mandatory audit reason
+
+  @@index([businessDivision])
+  @@index([date])
+}
+
+model Expense {
+  id               String       @id @default(uuid())
+  date             DateTime
+  businessDivision String       // 'construction', 'solar', 'suppliers'
+  category         String       // 'Fuel & Logistics', 'Equipment Maintenance', 'Raw Materials', 'Salaries', 'Rent & Utilities', 'Government & Taxes'
+  amount           Float
+  paymentMethod    String       // 'NEFT/RTGS', 'UPI', 'Cheque', 'Cash'
+  paidTo           String?
+  referenceNumber  String?
+  description      String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?    // Soft-delete with mandatory audit reason
+
+  @@index([businessDivision])
+  @@index([category])
+  @@index([date])
+}
+
+// -------------------------------------------------------------
+// 10. BILLING: QUOTATIONS & INVOICES
+// -------------------------------------------------------------
+
+model Quotation {
+  id               String          @id @default(uuid())
+  quotationNumber  String          @unique // e.g. JM-CE-Q-2026-001
+  customerId       String
+  customer         Customer        @relation(fields: [customerId], references: [id])
+  businessDivision String          // 'construction', 'solar', 'suppliers'
+  date             DateTime
+  validUntil       DateTime
+  taxRate          Float           @default(0) // Default off (0%), configurable
+  taxAmount        Float           @default(0)
+  discount         Float           @default(0)
+  grandTotal       Float           @default(0) // Server validated
+  terms            String?
+  status           String          @default("Sent") // 'Draft', 'Sent', 'Accepted', 'Rejected', 'Converted'
+  isDemo           Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  items            QuotationItem[]
+
+  @@index([businessDivision])
+  @@index([quotationNumber])
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unit        String    // 'Day', 'Month', 'Brass', 'Ton', 'kWp', 'Unit'
+  unitPrice   Float     // Snapshotted price
+  lineTotal   Float     // (quantity * unitPrice)
+
+  @@index([quotationId])
+}
+
+model Invoice {
+  id               String        @id @default(uuid())
+  invoiceNumber    String        @unique // e.g. JM-CE-INV-2026-001
+  customerId       String
+  customer         Customer      @relation(fields: [customerId], references: [id])
+  businessDivision String        // 'construction', 'solar', 'suppliers'
+  date             DateTime
+  dueDate          DateTime?
+  taxRate          Float         @default(0)
+  taxAmount        Float         @default(0)
+  discount         Float         @default(0)
+  total            Float         @default(0)
+  amountPaid       Float         @default(0)
+  // amountPending is computed server-side: (total - amountPaid)
+  paymentStatus    String        @default("Pending") // 'Paid', 'Partially Paid', 'Pending', 'Cancelled'
+  convertedFromQuotationId String?
+  notes            String?
+  isDemo           Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?     // Cancel, never delete
+
+  items            InvoiceItem[]
+  payments         Payment[]
+
+  @@index([businessDivision])
+  @@index([invoiceNumber])
+  @@index([paymentStatus])
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unit        String
+  unitPrice   Float    // Snapshotted historical price
+  lineTotal   Float
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentDate   DateTime
+  paymentMethod String    // 'NEFT/RTGS', 'UPI', 'Cheque', 'Cash'
+  referenceNo   String?
+  notes         String?
+  isDemo        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([invoiceId])
+  @@index([paymentDate])
+}
+
+// -------------------------------------------------------------
+// 11. SCHEDULING, TASKS & PRODUCTIVITY
+// -------------------------------------------------------------
+
+model Appointment {
+  id               String       @id @default(uuid())
+  title            String
+  type             String       // 'Site Visit', 'Client Meeting', 'Solar Installation', 'Equipment Delivery', 'Team Sync'
+  businessDivision String       // 'construction', 'solar', 'suppliers', 'group'
+  dateTime         DateTime
+  location         String
+  contactPerson    String?
+  contactPhone     String?
+  assignedEmployeeId String?
+  assignedEmployee Employee?    @relation(fields: [assignedEmployeeId], references: [id])
+  status           String       @default("Scheduled") // 'Scheduled', 'Completed', 'Rescheduled', 'Cancelled'
+  notes            String?
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([businessDivision])
+  @@index([dateTime])
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  title            String
+  description      String?
+  businessDivision String
+  assignedToUserId String
+  assignedUser     User         @relation("AssignedTasks", fields: [assignedToUserId], references: [id])
+  employeeId       String?
+  employee         Employee?    @relation(fields: [employeeId], references: [id])
+  projectId        String?
+  project          Project?     @relation(fields: [projectId], references: [id])
+  dueDate          DateTime?
+  priority         String       @default("Medium") // 'Low', 'Medium', 'High', 'Urgent'
+  status           String       @default("Pending") // 'Pending', 'In Progress', 'Completed'
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([assignedToUserId])
+  @@index([businessDivision])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// 12. SECURE DOCUMENT VAULT (Outside web root)
+// -------------------------------------------------------------
+
+model Document {
+  id               String    @id @default(uuid())
+  originalName     String    // Display name
+  storedFilename   String    // Randomized UUID stored on disk
+  mimeType         String
+  sizeBytes        Int
+  category         String    // 'Contracts', 'GST', 'Licences', 'Employee Docs', 'Project Drawings', 'Tax Invoices'
+  businessDivision String    // 'construction', 'solar', 'suppliers', 'group'
+  relatedEntityType String?  // 'Customer', 'Project', 'Employee', 'Invoice'
+  relatedEntityId   String?
+  uploadedBy       String?
+  isDemo           Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime? // Soft-delete
+
+  @@index([businessDivision])
+  @@index([category])
+}
+
+// -------------------------------------------------------------
+// 13. NOTIFICATIONS & ALERTS
+// -------------------------------------------------------------
+
+model Notification {
+  id               String    @id @default(uuid())
+  title            String
+  message          String
+  type             String    // 'LOW_STOCK', 'PROJECT_DEADLINE', 'EQUIPMENT_RETURN', 'PENDING_PAYMENT', 'LEAD_FOLLOWUP', 'SYSTEM'
+  businessDivision String?   // Division filter or null for all
+  linkUrl          String?
+  isRead           Boolean   @default(false)
+  isDemo           Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 14. ADMIN SETTINGS & SOLAR CALCULATOR COEFFICIENTS
+// -------------------------------------------------------------
+
+model Setting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  valueJson   String   // Stored as JSON string
+  description String?
+  category    String   // 'Company', 'SolarCalculator', 'SubsidyRules', 'Invoicing', 'Tax'
+  updatedAt   DateTime @updatedAt
+}
