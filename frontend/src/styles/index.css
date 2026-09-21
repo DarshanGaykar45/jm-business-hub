@@ -58,4 +58,20 @@
     transform: translateY(-2px);
     box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
   }
+
+  /* Entrance animation for modals & toasts */
+  .animate-in {
+    animation: fadeSlideIn 0.2s ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }

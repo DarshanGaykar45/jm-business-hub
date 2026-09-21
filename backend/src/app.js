@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const env = require('./config/env');
 const companyConfig = require('./config/company.config');
 const authRoutes = require('./routes/auth.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.get('/api/public/company-info', (req, res) => {
 
 // Mount Application Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 Handler
 app.use((req, res) => {
