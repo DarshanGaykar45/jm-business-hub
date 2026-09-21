@@ -194,15 +194,23 @@ async function registerUser({ actorUserId, data, req }) {
     throw error;
   }
 
-  const role = await prisma.role.findUnique({
-    where: { id: data.roleId }
-  });
+  let role = null;
+  if (data.roleId) {
+    role = await prisma.role.findUnique({ where: { id: data.roleId } });
+  }
+  if (!role && (data.role || data.roleName)) {
+    role = await prisma.role.findUnique({ where: { name: data.role || data.roleName } });
+  }
+  if (!role) {
+    role = await prisma.role.findFirst({ where: { name: 'Owner' } }) || await prisma.role.findFirst();
+  }
 
   if (!role) {
     const error = new Error('Specified role does not exist.');
     error.statusCode = 400;
     throw error;
   }
+
 
   const passwordHash = await bcrypt.hash(data.password, BCRYPT_SALT_ROUNDS);
 
@@ -260,13 +268,15 @@ async function signupUser({ name, email, password, phone, roleName = 'Owner', bu
   }
 
   // Find or default role
+  const resolvedRoleName = roleName || 'Owner';
   let role = await prisma.role.findUnique({
-    where: { name: roleName || 'Owner' }
+    where: { name: resolvedRoleName }
   });
 
   if (!role) {
-    role = await prisma.role.findFirst();
+    role = await prisma.role.findFirst({ where: { name: 'Owner' } }) || await prisma.role.findFirst();
   }
+
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 

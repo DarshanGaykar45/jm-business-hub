@@ -15,8 +15,16 @@ router.post(
   authController.login
 );
 
+// Both /signup and /register are supported for account creation
 router.post(
   '/signup',
+  authRateLimiter,
+  validate(signupSchema),
+  authController.signup
+);
+
+router.post(
+  '/register',
   authRateLimiter,
   validate(signupSchema),
   authController.signup
@@ -35,13 +43,5 @@ router.get(
   authController.getCurrentUser
 );
 
-// User Registration - Strictly Owner only
-router.post(
-  '/register',
-  authenticate,
-  authorize('users', 'create'),
-  validate(registerUserSchema),
-  authController.register
-);
-
 module.exports = router;
+
