@@ -90,12 +90,18 @@ app.use((req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled Application Error:', err);
   const statusCode = err.statusCode || 500;
+  if (statusCode >= 500) {
+    console.error('💥 Server Error (500):', err);
+  } else {
+    console.warn(`⚠️ Client Error (${statusCode}):`, err.message);
+  }
+
   res.status(statusCode).json({
-    error: err.name || 'InternalServerError',
-    message: env.NODE_ENV === 'production' ? 'An unexpected server error occurred.' : err.message
+    error: err.name || (statusCode === 409 ? 'Conflict' : statusCode === 401 ? 'Unauthorized' : 'Error'),
+    message: env.NODE_ENV === 'production' && statusCode >= 500 ? 'An unexpected server error occurred.' : err.message
   });
 });
+
 
 module.exports = app;
