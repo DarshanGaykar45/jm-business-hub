@@ -11,10 +11,13 @@ const signupSchema = z.object({
   body: z.object({
     email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
     password: z.string().min(6, 'Password must be at least 6 characters long'),
-    name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
-    phone: z.string().optional(),
+    name: z.string().min(1, 'Name is required').trim(),
+    phone: z.string().nullable().optional(),
     role: z.string().optional().default('Owner'),
-    businessDivision: z.enum(['construction', 'solar', 'suppliers']).nullable().optional()
+    businessDivision: z.preprocess(
+      (val) => (val === '' || val === undefined ? null : val),
+      z.enum(['construction', 'solar', 'suppliers']).nullable().optional()
+    )
   })
 });
 

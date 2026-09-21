@@ -39,28 +39,72 @@ export default function LoginPage() {
 
   const validateLogin = () => {
     const errs = {};
-    if (!loginEmail.trim()) errs.loginEmail = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(loginEmail)) errs.loginEmail = 'Please enter a valid email';
-    if (!loginPassword) errs.loginPassword = 'Password is required';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (!loginEmail.trim()) {
+      errs.loginEmail = 'Email is required';
+      toast.error('Please enter your email address');
+      setErrors(errs);
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(loginEmail.trim())) {
+      errs.loginEmail = 'Please enter a valid email';
+      toast.error('Please enter a valid email address');
+      setErrors(errs);
+      return false;
+    }
+    if (!loginPassword) {
+      errs.loginPassword = 'Password is required';
+      toast.error('Please enter your password');
+      setErrors(errs);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const validateSignup = () => {
     const errs = {};
-    if (!signupName.trim()) errs.signupName = 'Full Name is required';
-    if (!signupEmail.trim()) errs.signupEmail = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(signupEmail)) errs.signupEmail = 'Please enter a valid email';
-    if (signupPhone && !/^\d{10}$/.test(signupPhone.replace(/[\s+-]/g, ''))) {
-      errs.signupPhone = 'Please enter a valid 10-digit phone number';
+    const trimmedName = signupName.trim();
+    const trimmedEmail = signupEmail.trim();
+
+    if (!trimmedName) {
+      errs.signupName = 'Full Name is required';
+      toast.error('Please enter your Full Name');
+      setErrors(errs);
+      return false;
     }
-    if (!signupPassword) errs.signupPassword = 'Password is required';
-    else if (signupPassword.length < 6) errs.signupPassword = 'Password must be at least 6 characters';
+    if (!trimmedEmail) {
+      errs.signupEmail = 'Email is required';
+      toast.error('Please enter your Email Address');
+      setErrors(errs);
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      errs.signupEmail = 'Please enter a valid email address';
+      toast.error('Please enter a valid email format (e.g. name@example.com)');
+      setErrors(errs);
+      return false;
+    }
+    if (!signupPassword) {
+      errs.signupPassword = 'Password is required';
+      toast.error('Please choose a password');
+      setErrors(errs);
+      return false;
+    }
+    if (signupPassword.length < 6) {
+      errs.signupPassword = 'Password must be at least 6 characters';
+      toast.error('Password must be at least 6 characters long');
+      setErrors(errs);
+      return false;
+    }
     if (signupPassword !== signupConfirmPassword) {
       errs.signupConfirmPassword = 'Passwords do not match';
+      toast.error('Passwords do not match. Please re-type your confirm password.');
+      setErrors(errs);
+      return false;
     }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+
+    setErrors({});
+    return true;
   };
 
   const handleLoginSubmit = async (e) => {
@@ -69,11 +113,12 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(loginEmail, loginPassword);
+      await login(loginEmail.trim(), loginPassword);
       toast.success('Signed in successfully! Welcome back.');
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid email or password.';
+      console.error('Login error:', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Invalid email or password.';
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -86,18 +131,25 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await signup({
-        name: signupName,
-        email: signupEmail,
-        phone: signupPhone || undefined,
-        role: signupRole,
-        businessDivision: signupDivision || null,
+      const payload = {
+        name: signupName.trim(),
+        email: signupEmail.trim(),
         password: signupPassword,
-      });
-      toast.success(`Account created! Welcome to JM Business Hub, ${signupName}.`);
+        role: signupRole || 'Owner',
+        phone: signupPhone.trim() ? signupPhone.trim() : null,
+        businessDivision: signupDivision ? signupDivision : null,
+      };
+
+      await signup(payload);
+      toast.success(`Account created! Welcome, ${signupName.trim()}.`);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to create account. Please try again.';
+      console.error('Signup error:', err);
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Could not create account. Please check your network and try again.';
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -135,6 +187,7 @@ export default function LoginPage() {
           <div className="flex rounded-xl bg-navy-950/80 p-1 mb-6 border border-slate-800">
             <button
               type="button"
+              id="tab-sign-in"
               onClick={() => { setMode('login'); setErrors({}); }}
               className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${
                 mode === 'login'
@@ -147,6 +200,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
+              id="tab-create-account"
               onClick={() => { setMode('signup'); setErrors({}); }}
               className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${
                 mode === 'signup'
@@ -170,6 +224,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="login-email"
                     type="email"
                     autoComplete="email"
                     value={loginEmail}
@@ -194,6 +249,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="login-password"
                     type={showLoginPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     value={loginPassword}
@@ -220,6 +276,7 @@ export default function LoginPage() {
 
               {/* Submit */}
               <Button
+                id="btn-sign-in"
                 type="submit"
                 variant="primary"
                 size="lg"
@@ -249,11 +306,12 @@ export default function LoginPage() {
               {/* Full Name */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Full Name
+                  Full Name <span className="text-amber-400">*</span>
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="signup-name"
                     type="text"
                     value={signupName}
                     onChange={(e) => {
@@ -272,11 +330,12 @@ export default function LoginPage() {
               {/* Email Address */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Email Address
+                  Email Address <span className="text-amber-400">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="signup-email"
                     type="email"
                     autoComplete="email"
                     value={signupEmail}
@@ -303,19 +362,17 @@ export default function LoginPage() {
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
+                      id="signup-phone"
                       type="tel"
                       value={signupPhone}
                       onChange={(e) => {
                         setSignupPhone(e.target.value);
                         setErrors((prev) => ({ ...prev, signupPhone: null }));
                       }}
-                      className={`w-full pl-10 pr-3 py-2.5 text-sm bg-navy-950/90 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
-                        errors.signupPhone ? 'border-red-500' : 'border-slate-700/80 focus:border-amber-500/60'
-                      }`}
-                      placeholder="10-digit number"
+                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-navy-950/90 border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 transition-all"
+                      placeholder="e.g. 9876543210"
                     />
                   </div>
-                  {errors.signupPhone && <p className="text-xs text-red-400 mt-1">{errors.signupPhone}</p>}
                 </div>
 
                 {/* Role */}
@@ -326,6 +383,7 @@ export default function LoginPage() {
                   <div className="relative">
                     <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <select
+                      id="signup-role"
                       value={signupRole}
                       onChange={(e) => setSignupRole(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-navy-950/90 border border-slate-700/80 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60"
@@ -342,11 +400,12 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Password
+                  Password (min 6 characters) <span className="text-amber-400">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="signup-password"
                     type={showSignupPassword ? 'text' : 'password'}
                     value={signupPassword}
                     onChange={(e) => {
@@ -356,7 +415,7 @@ export default function LoginPage() {
                     className={`w-full pl-10 pr-10 py-2.5 text-sm bg-navy-950/90 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
                       errors.signupPassword ? 'border-red-500' : 'border-slate-700/80 focus:border-amber-500/60'
                     }`}
-                    placeholder="At least 6 characters"
+                    placeholder="Enter at least 6 characters"
                   />
                   <button
                     type="button"
@@ -372,11 +431,12 @@ export default function LoginPage() {
               {/* Confirm Password */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Confirm Password
+                  Confirm Password <span className="text-amber-400">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="signup-confirm-password"
                     type={showSignupPassword ? 'text' : 'password'}
                     value={signupConfirmPassword}
                     onChange={(e) => {
@@ -394,6 +454,7 @@ export default function LoginPage() {
 
               {/* Submit */}
               <Button
+                id="btn-create-account"
                 type="submit"
                 variant="primary"
                 size="lg"
