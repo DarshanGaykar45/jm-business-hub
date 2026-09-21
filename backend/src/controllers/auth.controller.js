@@ -87,9 +87,43 @@ async function register(req, res, next) {
   }
 }
 
+async function signup(req, res, next) {
+  try {
+    const { name, email, password, phone, role, businessDivision } = req.body;
+    const { user, accessToken, rawRefreshToken } = await authService.signupUser({
+      name,
+      email,
+      password,
+      phone,
+      roleName: role,
+      businessDivision,
+      req
+    });
+
+    res.cookie('accessToken', accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 60 * 60 * 1000 // 1 hour
+    });
+
+    res.cookie('refreshToken', rawRefreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(201).json({
+      message: 'Account created successfully.',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   login,
   logout,
   getCurrentUser,
-  register
+  register,
+  signup
 };
+

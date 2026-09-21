@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/permissions');
 const { authRateLimiter } = require('../middleware/rateLimit');
 const { validate } = require('../middleware/validate');
-const { loginSchema, registerUserSchema } = require('../validators/auth.validator');
+const { loginSchema, signupSchema, registerUserSchema } = require('../validators/auth.validator');
 
 // Public Auth Endpoints
 router.post(
@@ -13,6 +13,13 @@ router.post(
   authRateLimiter,
   validate(loginSchema),
   authController.login
+);
+
+router.post(
+  '/signup',
+  authRateLimiter,
+  validate(signupSchema),
+  authController.signup
 );
 
 // Protected Auth Endpoints

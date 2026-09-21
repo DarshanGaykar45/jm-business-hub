@@ -12,6 +12,16 @@ const server = app.listen(PORT, () => {
   console.log(`=========================================`);
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use by another process.`);
+    console.error(`👉 Stop any running process on port ${PORT} or change PORT in backend/.env`);
+    process.exit(1);
+  } else {
+    console.error('❌ Server startup error:', err);
+  }
+});
+
 // Graceful Shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');

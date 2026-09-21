@@ -29,6 +29,12 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const signup = async (formData) => {
+    const res = await api.post('/auth/signup', formData);
+    setUser(res.data.user);
+    return res.data;
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -47,6 +53,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!user,
         loading,
         login,
+        signup,
         logout,
         checkAuthStatus
       }}

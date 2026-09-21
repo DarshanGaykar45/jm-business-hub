@@ -190,13 +190,6 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Demo Banner */}
-        {isDemo && (
-          <div className="bg-amber-600/20 border-b border-amber-500/30 px-4 py-1.5 text-xs text-center text-amber-300 font-semibold">
-            ⚠️ DEMO MODE — You are viewing sample data. All records marked with "SAMPLE DATA" badges are fictional.
-          </div>
-        )}
-
         {/* Top Bar */}
         <header className="h-16 border-b border-slate-800 bg-navy-950/90 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-40 flex-shrink-0">
           <div className="flex items-center gap-3">

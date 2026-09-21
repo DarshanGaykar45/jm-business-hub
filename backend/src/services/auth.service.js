@@ -243,9 +243,95 @@ async function registerUser({ actorUserId, data, req }) {
   };
 }
 
+/**
+ * Public Signup Service - Registers real user and logs them in
+ */
+async function signupUser({ name, email, password, phone, roleName = 'Owner', businessDivision = null, req }) {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const existing = await prisma.user.findUnique({
+    where: { email: normalizedEmail }
+  });
+
+  if (existing) {
+    const error = new Error('An account with this email address already exists.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // Find or default role
+  let role = await prisma.role.findUnique({
+    where: { name: roleName || 'Owner' }
+  });
+
+  if (!role) {
+    role = await prisma.role.findFirst();
+  }
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
+  const newUser = await prisma.user.create({
+    data: {
+      email: normalizedEmail,
+      passwordHash,
+      name: name.trim(),
+      phone: phone ? phone.trim() : null,
+      roleId: role.id,
+      businessDivision: businessDivision || null,
+      isDemo: false
+    },
+    include: { role: true }
+  });
+
+  // Generate tokens and log them in directly
+  const { accessToken, rawRefreshToken, refreshTokenHash } = generateTokens(newUser);
+
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  await prisma.userSession.create({
+    data: {
+      userId: newUser.id,
+      refreshTokenHash,
+      ipAddress: req?.ip || null,
+      userAgent: req?.headers['user-agent'] || null,
+      expiresAt
+    }
+  });
+
+  await logAudit({
+    actorUserId: newUser.id,
+    action: 'USER_SIGNUP',
+    entityType: 'User',
+    entityId: newUser.id,
+    afterJson: {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: role.name
+    },
+    req
+  });
+
+  return {
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      phone: newUser.phone,
+      role: newUser.role.name,
+      businessDivision: newUser.businessDivision,
+      isDemo: false,
+      permissions: ROLE_PERMISSIONS[newUser.role.name] || {}
+    },
+    accessToken,
+    rawRefreshToken
+  };
+}
+
 module.exports = {
   loginUser,
   logoutUser,
   registerUser,
+  signupUser,
   BCRYPT_SALT_ROUNDS
 };
+
