@@ -2,14 +2,17 @@
   "name": "jm-business-hub",
   "version": "1.0.0",
   "description": "JM Business Hub — Enterprise Platform for Jay Malhar Udyog Samuha",
-  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "start:backend": "npm --prefix backend start",
     "build:frontend": "npm --prefix frontend run build",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix backend run prisma:generate && npm --prefix frontend run build"
   },
   "keywords": [
     "jm-business-hub",

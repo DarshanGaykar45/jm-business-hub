@@ -5,13 +5,14 @@ const { z } = require('zod');
 const employeeSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
-  address: z.string().optional(),
+  address: z.string().optional().nullable(),
   role: z.string().min(2, 'Role/Designation is required'),
   department: z.string().min(2, 'Department is required'),
   businessDivision: z.enum(['construction', 'solar', 'suppliers', 'group']).default('construction'),
-  joiningDate: z.string().or(z.date()),
-  salary: z.number().optional().nullable(),
-  dailyWage: z.number().optional().nullable(),
+  joiningDate: z.string().or(z.date()).optional().nullable().default(() => new Date().toISOString()),
+  salary: z.coerce.number().optional().nullable(),
+  monthlySalary: z.coerce.number().optional().nullable(),
+  dailyWage: z.coerce.number().optional().nullable(),
   status: z.enum(['Active', 'Deactivated', 'On Leave']).default('Active')
 });
 
@@ -136,7 +137,7 @@ async function createEmployee(req, res) {
         department: parse.data.department,
         businessDivision: parse.data.businessDivision,
         joiningDate: new Date(parse.data.joiningDate),
-        salary: parse.data.salary || null,
+        salary: parse.data.salary ?? parse.data.monthlySalary ?? null,
         dailyWage: parse.data.dailyWage || null,
         status: parse.data.status
       }

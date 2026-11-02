@@ -13,10 +13,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkAuthStatus = async () => {
+    const token = localStorage.getItem('jm_token');
     try {
       const res = await api.get('/auth/me');
       setUser(res.data.user);
     } catch (err) {
+      if (token) {
+        localStorage.removeItem('jm_token');
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -25,12 +29,20 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
+    const token = res.data.token || res.data.accessToken;
+    if (token) {
+      localStorage.setItem('jm_token', token);
+    }
     setUser(res.data.user);
     return res.data;
   };
 
   const signup = async (formData) => {
     const res = await api.post('/auth/signup', formData);
+    const token = res.data.token || res.data.accessToken;
+    if (token) {
+      localStorage.setItem('jm_token', token);
+    }
     setUser(res.data.user);
     return res.data;
   };
@@ -41,6 +53,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('Logout API error:', err);
     } finally {
+      localStorage.removeItem('jm_token');
       setUser(null);
     }
   };

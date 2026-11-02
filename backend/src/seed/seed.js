@@ -27,34 +27,47 @@ async function seed() {
     roleMap[rName] = role;
   }
 
-  // Populate Permissions
+  // Populate Permissions (deduplicated)
+  const permPairs = [];
   for (const [rName, perms] of Object.entries(ROLE_PERMISSIONS)) {
-    const role = roleMap[rName];
     for (const [resource, actions] of Object.entries(perms)) {
       for (const action of actions) {
-        const permission = await prisma.permission.upsert({
-          where: {
-            resource_action: { resource, action }
-          },
-          update: {},
-          create: { resource, action }
-        });
-
-        await prisma.rolePermission.upsert({
-          where: {
-            roleId_permissionId: {
-              roleId: role.id,
-              permissionId: permission.id
-            }
-          },
-          update: {},
-          create: {
-            roleId: role.id,
-            permissionId: permission.id
-          }
-        });
+        permPairs.push({ rName, resource, action });
       }
     }
+  }
+
+  const uniquePerms = Array.from(new Set(permPairs.map(p => `${p.resource}:${p.action}`))).map(str => {
+    const [resource, action] = str.split(':');
+    return { resource, action };
+  });
+
+  const permObjMap = {};
+  for (const { resource, action } of uniquePerms) {
+    const perm = await prisma.permission.upsert({
+      where: { resource_action: { resource, action } },
+      update: {},
+      create: { resource, action }
+    });
+    permObjMap[`${resource}:${action}`] = perm;
+  }
+
+  for (const { rName, resource, action } of permPairs) {
+    const role = roleMap[rName];
+    const perm = permObjMap[`${resource}:${action}`];
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: role.id,
+          permissionId: perm.id
+        }
+      },
+      update: {},
+      create: {
+        roleId: role.id,
+        permissionId: perm.id
+      }
+    });
   }
 
   // 2. Demo Users (One per role)

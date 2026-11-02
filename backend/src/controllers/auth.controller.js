@@ -4,8 +4,8 @@ const { ROLE_PERMISSIONS } = require('../middleware/permissions');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   path: '/'
 };
 
@@ -31,6 +31,8 @@ async function login(req, res, next) {
 
     res.json({
       message: 'Login successful.',
+      token: accessToken,
+      accessToken,
       user
     });
   } catch (error) {
@@ -112,6 +114,8 @@ async function signup(req, res, next) {
 
     res.status(201).json({
       message: 'Account created successfully.',
+      token: accessToken,
+      accessToken,
       user
     });
   } catch (error) {
