@@ -12,7 +12,7 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "start:backend": "npm --prefix backend start",
     "build:frontend": "npm --prefix frontend run build",
-    "build": "npm --prefix backend run prisma:generate && npm --prefix frontend run build"
+    "build": "npm --prefix backend install && npm --prefix backend run prisma:generate && npm --prefix frontend install && npm --prefix frontend run build"
   },
   "keywords": [
     "jm-business-hub",
