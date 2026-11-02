@@ -5,30 +5,49 @@ import { AuthProvider } from './context/AuthContext';
 import { BusinessDivisionProvider } from './context/BusinessDivisionContext';
 import { ToastProvider } from './components/Toast';
 
-// Pages
-import LoginPage from './pages/LoginPage';
-import DashboardHome from './pages/dashboard/DashboardHome';
-
 // Layouts
+import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 
-// Route Guards
+// Auth Guard & Pages
 import ProtectedRoute from './routes/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
 
-/**
- * Placeholder page for modules not yet implemented (Phase 4+)
- */
-function ComingSoon({ title }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-slate-800/60 flex items-center justify-center mb-4">
-        <span className="text-2xl">🚧</span>
-      </div>
-      <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-      <p className="text-sm text-slate-400">This module will be built in a future phase.</p>
-    </div>
-  );
-}
+// Public Pages
+import Home from './pages/public/Home';
+import About from './pages/public/About';
+import OurBusinesses from './pages/public/OurBusinesses';
+import ConstructionEquipment from './pages/public/ConstructionEquipment';
+import SolarSundatta from './pages/public/SolarSundatta';
+import ConstructionMaterials from './pages/public/ConstructionMaterials';
+import Services from './pages/public/Services';
+import Products from './pages/public/Products';
+import Gallery from './pages/public/Gallery';
+import Contact from './pages/public/Contact';
+import Location from './pages/public/Location';
+import SolarSubsidy from './pages/public/SolarSubsidy';
+
+// Dashboard Pages
+import DashboardHome from './pages/dashboard/DashboardHome';
+import EmployeeManagement from './pages/dashboard/EmployeeManagement';
+import ProjectManagement from './pages/dashboard/ProjectManagement';
+import CustomerManagement from './pages/dashboard/CustomerManagement';
+import LeadManagement from './pages/dashboard/LeadManagement';
+import InventoryManagement from './pages/dashboard/InventoryManagement';
+import EquipmentManagement from './pages/dashboard/EquipmentManagement';
+import RentalTracking from './pages/dashboard/RentalTracking';
+import VehicleEquipment from './pages/dashboard/VehicleEquipment';
+import IncomeExpense from './pages/dashboard/IncomeExpense';
+import QuotationGenerator from './pages/dashboard/QuotationGenerator';
+import InvoiceAndBilling from './pages/dashboard/InvoiceAndBilling';
+import Appointments from './pages/dashboard/Appointments';
+import TaskPlanner from './pages/dashboard/TaskPlanner';
+import Notifications from './pages/dashboard/Notifications';
+import DocumentVault from './pages/dashboard/DocumentVault';
+import Reports from './pages/dashboard/Reports';
+import UserManagement from './pages/dashboard/UserManagement';
+import BusinessDivisionMgmt from './pages/dashboard/BusinessDivisionMgmt';
+import Settings from './pages/dashboard/Settings';
 
 export default function App() {
   return (
@@ -38,13 +57,26 @@ export default function App() {
           <BusinessDivisionProvider>
             <ToastProvider>
               <Routes>
-                {/* Public Routes */}
+                {/* Public Website Routes */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/businesses" element={<OurBusinesses />} />
+                  <Route path="/equipment" element={<ConstructionEquipment />} />
+                  <Route path="/solar" element={<SolarSundatta />} />
+                  <Route path="/materials" element={<ConstructionMaterials />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/gallery" element={<Gallery />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/location" element={<Location />} />
+                  <Route path="/subsidy" element={<SolarSubsidy />} />
+                </Route>
+
+                {/* Authentication */}
                 <Route path="/login" element={<LoginPage />} />
 
-                {/* Redirect root to dashboard (or a future public home page) */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-                {/* Protected Dashboard Routes */}
+                {/* Protected Admin & Operations Dashboard */}
                 <Route
                   path="/dashboard"
                   element={
@@ -55,40 +87,38 @@ export default function App() {
                 >
                   <Route index element={<DashboardHome />} />
 
-                  {/* Phase 4: Operations */}
-                  <Route path="employees" element={<ComingSoon title="Employee Management" />} />
-                  <Route path="projects" element={<ComingSoon title="Project Management" />} />
-                  <Route path="customers" element={<ComingSoon title="Customer Management (CRM)" />} />
-                  <Route path="leads" element={<ComingSoon title="Lead Management" />} />
+                  {/* Operations Modules */}
+                  <Route path="employees" element={<EmployeeManagement />} />
+                  <Route path="projects" element={<ProjectManagement />} />
+                  <Route path="customers" element={<CustomerManagement />} />
+                  <Route path="leads" element={<LeadManagement />} />
 
-                  {/* Phase 5: Assets */}
-                  <Route path="inventory" element={<ComingSoon title="Inventory Management" />} />
-                  <Route path="equipment" element={<ComingSoon title="Equipment Management" />} />
-                  <Route path="rentals" element={<ComingSoon title="Rental Tracking" />} />
-                  <Route path="vehicles" element={<ComingSoon title="Vehicle Management" />} />
+                  {/* Assets & Machinery Modules */}
+                  <Route path="inventory" element={<InventoryManagement />} />
+                  <Route path="equipment" element={<EquipmentManagement />} />
+                  <Route path="rentals" element={<RentalTracking />} />
+                  <Route path="vehicles" element={<VehicleEquipment />} />
 
-                  {/* Phase 6: Finance */}
-                  <Route path="income-expense" element={<ComingSoon title="Income & Expense" />} />
-                  <Route path="quotations" element={<ComingSoon title="Quotation Generator" />} />
-                  <Route path="invoices" element={<ComingSoon title="Invoice & Billing" />} />
+                  {/* Finance & Invoicing Modules */}
+                  <Route path="income-expense" element={<IncomeExpense />} />
+                  <Route path="quotations" element={<QuotationGenerator />} />
+                  <Route path="invoices" element={<InvoiceAndBilling />} />
 
-                  {/* Phase 7: Planning */}
-                  <Route path="appointments" element={<ComingSoon title="Appointment Scheduler" />} />
-                  <Route path="tasks" element={<ComingSoon title="Daily Work Planner" />} />
+                  {/* Planning & Schedule Modules */}
+                  <Route path="appointments" element={<Appointments />} />
+                  <Route path="tasks" element={<TaskPlanner />} />
 
-                  {/* Phase 7: System */}
-                  <Route path="documents" element={<ComingSoon title="Document Vault" />} />
-
-                  {/* Phase 8: Reports */}
-                  <Route path="reports" element={<ComingSoon title="Reports & Analytics" />} />
-
-                  {/* Phase 2: System (existing auth) */}
-                  <Route path="users" element={<ComingSoon title="User Management" />} />
-                  <Route path="settings" element={<ComingSoon title="Settings" />} />
+                  {/* System & Analytics Modules */}
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="documents" element={<DocumentVault />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="divisions" element={<BusinessDivisionMgmt />} />
+                  <Route path="settings" element={<Settings />} />
                 </Route>
 
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                {/* Catch-all redirect */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ToastProvider>
           </BusinessDivisionProvider>

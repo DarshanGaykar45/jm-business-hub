@@ -1,19 +1,39 @@
 /**
- * Media Configuration & Background Asset Registry
- * Client: Jay Malhar Udyog Samuha
- * 
- * Central slot mapping for all background images.
- * Image drops into frontend/public/assets/backgrounds/ will work seamlessly.
+ * SECTION 3: IMAGE & MEDIA INTEGRATION
+ * Image mapping and asset registry from Visiting Cards + Billboard
  */
 
 export const MEDIA = {
-  heroHome:         "/assets/backgrounds/hero-home.jpg",
-  heroConstruction: "/assets/backgrounds/construction.jpg",
-  heroSolar:        "/assets/backgrounds/solar.jpg",
-  heroSuppliers:    "/assets/backgrounds/suppliers.jpg",
-  aboutBanner:      "/assets/backgrounds/about.jpg",
-  contactBanner:    "/assets/backgrounds/contact.jpg",
-  ctaStrip:         "/assets/backgrounds/cta.jpg",
+  // Backgrounds — these files go in frontend/public/assets/backgrounds/
+  heroHome: "/assets/backgrounds/hero-home.jpg", // Billboard (Image 5)
+  heroConstruction: "/assets/backgrounds/construction-hero.jpg", // Billboard
+  heroSolar: "/assets/backgrounds/solar-hero.jpg", // Sundatta poster (Image 3)
+  heroSuppliers: "/assets/backgrounds/suppliers-hero.jpg", // Stone gradient fallback
+  aboutBanner: "/assets/backgrounds/about-banner.jpg", // Reserved
+  contactBanner: "/assets/backgrounds/contact-banner.jpg", // Reserved
+
+  // SVG silhouettes for 3D animations
+  rammerSVG: "/assets/products/rammer.svg", // Tamping rammer outline
+  compactorSVG: "/assets/products/compactor.svg", // Plate compactor outline
+  solarPanelSVG: "/assets/products/solar-panel.svg", // Solar panel silhouette
+
+  // Visiting card info (Image 1)
+  visitingCard: {
+    construction: {
+      name: "Jay Malhar",
+      phone1: "9158494138",
+      phone2: "9096547260",
+      description: "ॐ औम साई राम || All types of murum (soil) compaction work at fair rates.",
+      location: "Shriram Chowk, Pathre Budruk, Tal. Sinnar, Dist. Nashik"
+    },
+    solar: {
+      name: "Sundatta Renewables",
+      phone1: "7774855520",
+      phone2: "9096547260",
+      tagline: "Your Roof Your Power",
+      location: "Shriram Chowk, Pathre Budruk, Tal. Sinnar, Dist. Nashik"
+    }
+  }
 };
 
 /**
@@ -21,18 +41,18 @@ export const MEDIA = {
  * Used underneath background images so missing/loading images still look stunning.
  */
 export const GRADIENT_FALLBACKS = {
-  home: "linear-gradient(135deg, #0b1322 0%, #162744 50%, #0e1a2d 100%)",
-  construction: "linear-gradient(135deg, #1c150c 0%, #78350f 40%, #0e1a2d 100%)",
-  solar: "linear-gradient(135deg, #062217 0%, #065f46 40%, #0e1a2d 100%)",
-  suppliers: "linear-gradient(135deg, #18181b 0%, #3f3f46 40%, #0e1a2d 100%)",
-  default: "linear-gradient(135deg, #0e1a2d 0%, #162744 100%)"
+  home: "radial-gradient(ellipse at 50% 20%, #1e293b 0%, #0f172a 60%, #020617 100%)",
+  construction: "radial-gradient(ellipse at 50% 20%, #451a03 0%, #1c1917 60%, #0c0a09 100%)",
+  solar: "radial-gradient(ellipse at 50% 20%, #064e3b 0%, #022c22 60%, #020617 100%)",
+  suppliers: "radial-gradient(ellipse at 50% 20%, #292524 0%, #1c1917 60%, #0a0a0a 100%)",
+  default: "radial-gradient(ellipse at 50% 20%, #1e293b 0%, #0f172a 100%)"
 };
 
 /**
  * Dark Overlay
  * Guaranteed text legibility over any client-provided photo
  */
-export const DARK_OVERLAY = "linear-gradient(rgba(14, 26, 45, 0.76), rgba(14, 26, 45, 0.62))";
+export const DARK_OVERLAY = "linear-gradient(rgba(2, 6, 23, 0.78), rgba(2, 6, 23, 0.65))";
 
 /**
  * Generates resilient CSS background style combining dark overlay, image URL, and fallback gradient

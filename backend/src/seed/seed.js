@@ -60,15 +60,26 @@ async function seed() {
   // 2. Demo Users (One per role)
   console.log('... Creating Demo Users (bcrypt cost 12)');
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, BCRYPT_SALT_ROUNDS);
+  const pass2024Hash = await bcrypt.hash('DemoPass@2024', BCRYPT_SALT_ROUNDS);
 
   const demoUsers = [
     {
       email: 'owner@jaymalhar.com',
       name: 'Abhishek Satav (Owner)',
       roleId: roleMap['Owner'].id,
-      phone: '9822000001',
+      phone: '9096547260',
       businessDivision: null,
-      isDemo: true
+      isDemo: true,
+      hash: passwordHash
+    },
+    {
+      email: 'owner@jmbusinesshub.com',
+      name: 'Abhishek Satav (Owner)',
+      roleId: roleMap['Owner'].id,
+      phone: '9096547260',
+      businessDivision: null,
+      isDemo: true,
+      hash: pass2024Hash
     },
     {
       email: 'manager@jaymalhar.com',
@@ -76,7 +87,8 @@ async function seed() {
       roleId: roleMap['Manager'].id,
       phone: '9822000002',
       businessDivision: null,
-      isDemo: true
+      isDemo: true,
+      hash: passwordHash
     },
     {
       email: 'accountant@jaymalhar.com',
@@ -84,15 +96,17 @@ async function seed() {
       roleId: roleMap['Accountant'].id,
       phone: '9822000003',
       businessDivision: null,
-      isDemo: true
+      isDemo: true,
+      hash: passwordHash
     },
     {
       email: 'employee@jaymalhar.com',
       name: 'Ramesh Jadhav (Site Supervisor)',
       roleId: roleMap['Employee'].id,
-      phone: '9822000004',
+      phone: '9158494138',
       businessDivision: 'construction',
-      isDemo: true
+      isDemo: true,
+      hash: passwordHash
     }
   ];
 
@@ -101,15 +115,21 @@ async function seed() {
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {
-        passwordHash,
+        passwordHash: u.hash,
         name: u.name,
         roleId: u.roleId,
         isDemo: true,
         isActive: true
       },
       create: {
-        ...u,
-        passwordHash
+        email: u.email,
+        name: u.name,
+        passwordHash: u.hash,
+        roleId: u.roleId,
+        phone: u.phone,
+        businessDivision: u.businessDivision,
+        isDemo: true,
+        isActive: true
       }
     });
     userMap[u.email] = user;
@@ -265,6 +285,28 @@ async function seed() {
   // 6. Demo Equipment (Construction Division)
   console.log('... Seeding Demo Equipment');
   const demoEquipments = [
+    {
+      equipmentId: 'TR-001',
+      name: 'Tamping Rammer',
+      category: 'Rammer',
+      businessDivision: 'construction',
+      status: 'Available',
+      rentalRatePerDay: 1200,
+      condition: 'Excellent',
+      notes: '3-5.5 HP, 80 kg weight, electric/petrol options. Deposit: ₹5,000',
+      isDemo: true
+    },
+    {
+      equipmentId: 'PC-001',
+      name: 'Plate Compactor',
+      category: 'Compactor',
+      businessDivision: 'construction',
+      status: 'Available',
+      rentalRatePerDay: 1500,
+      condition: 'Excellent',
+      notes: '5.5-6.5 HP, petrol/diesel/electric, 15-20 kN force. Deposit: ₹8,000',
+      isDemo: true
+    },
     {
       equipmentId: 'JM-EQ-001',
       name: 'Heavy Soil Compactor 10-Ton',

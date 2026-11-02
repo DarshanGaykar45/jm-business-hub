@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="100%" height="100%" fill="none">
+  <!-- Solar Panel Silhouette -->
+  <defs>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="50%" stop-color="#0369A1"/>
+      <stop offset="100%" stop-color="#082F49"/>
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sun Graphic In Background -->
+  <circle cx="320" cy="70" r="40" fill="url(#sunGrad)" opacity="0.85"/>
+  <path d="M 320 15 L 320 25 M 320 115 L 320 125 M 265 70 L 275 70 M 365 70 L 375 70 M 281 31 L 288 38 M 352 102 L 359 109 M 281 109 L 288 102 M 352 38 L 359 31" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Mounting Rails and Aluminum Leg Structure -->
+  <path d="M 80 280 L 110 190 L 125 190 L 95 280 Z" fill="#64748B"/>
+  <path d="M 280 280 L 310 190 L 325 190 L 295 280 Z" fill="#64748B"/>
+  <rect x="70" y="275" width="260" height="12" rx="3" fill="#334155"/>
+
+  <!-- Photovoltaic Panel Array (Isometric perspective) -->
+  <!-- Outer Aluminum Frame -->
+  <polygon points="50,195 160,85 360,85 250,195" fill="#E2E8F0" stroke="#94A3B8" stroke-width="4"/>
+  
+  <!-- Silicon Solar Wafer Surface -->
+  <polygon points="55,192 162,88 355,88 248,192" fill="url(#panelGrad)"/>
+
+  <!-- Grid Cell Lines (Horizontal & Vertical Busbars) -->
+  <!-- Horizontal lines across rows -->
+  <path d="M 78 166 L 333 114 M 102 140 L 308 140 M 126 114 L 333 114" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <!-- Diagonal cell separators in perspective -->
+  <path d="M 105,193 L 210,87" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <path d="M 155,193 L 260,87" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <path d="M 205,193 L 310,87" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+
+  <!-- Anti-reflective Glass Shimmer Highlights -->
+  <polygon points="70,178 180,95 200,95 90,178" fill="#FFFFFF" opacity="0.15"/>
+  <polygon points="120,178 230,95 240,95 130,178" fill="#FFFFFF" opacity="0.2"/>
+</svg>
