@@ -45,6 +45,17 @@ export default function DashboardHome() {
     }
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'Scheduled';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? 'Scheduled' : d.toLocaleDateString('en-IN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const accent = currentDivision === 'construction' ? 'amber'
     : currentDivision === 'solar' ? 'emerald'
     : currentDivision === 'suppliers' ? 'slate'
@@ -361,12 +372,7 @@ export default function DashboardHome() {
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1 text-slate-300">
                       <Clock className="w-3 h-3 text-amber-400" />
-                      {new Date(apt.dateTime).toLocaleDateString('en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatDateTime(apt.dateTime)}
                     </span>
                     <span className="flex items-center gap-1 text-slate-300">
                       <MapPin className="w-3 h-3 text-slate-500" />

@@ -47,15 +47,17 @@ import DocumentVault from './pages/dashboard/DocumentVault';
 import Reports from './pages/dashboard/Reports';
 import UserManagement from './pages/dashboard/UserManagement';
 import BusinessDivisionMgmt from './pages/dashboard/BusinessDivisionMgmt';
+import ErrorBoundary from './components/ErrorBoundary';
 import Settings from './pages/dashboard/Settings';
 
 export default function App() {
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <BusinessDivisionProvider>
-            <ToastProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <BusinessDivisionProvider>
+              <ToastProvider>
               <Routes>
                 {/* Public Website Routes */}
                 <Route element={<PublicLayout />}>
@@ -125,5 +127,6 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>
-  );
+  </ErrorBoundary>
+);
 }
