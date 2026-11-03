@@ -141,9 +141,54 @@ async function getAuditLogs(req, res) {
   }
 }
 
+/**
+ * Delete User (Soft-delete with deletedAt)
+ */
+async function deleteUser(req, res) {
+  try {
+    const { id } = req.params;
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'BadRequest', message: 'Cannot delete your own active user account' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
+    if (!user) return res.status(404).json({ error: 'NotFound', message: 'User not found' });
+
+    // Protect primary owner account
+    if (user.role.name === 'Owner') {
+      const ownerCount = await prisma.user.count({
+        where: { role: { name: 'Owner' }, deletedAt: null }
+      });
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: 'Forbidden', message: 'Cannot delete the only remaining Owner account' });
+      }
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'USER_DELETE',
+      entityType: 'User',
+      entityId: id,
+      beforeJson: { email: user.email, name: user.name },
+      req
+    });
+
+    return res.json({ success: true, message: 'User account removed successfully' });
+  } catch (error) {
+    console.error('Delete User Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete user' });
+  }
+}
+
 module.exports = {
   getUsers,
   createUser,
   toggleUserStatus,
+  deleteUser,
   getAuditLogs
 };

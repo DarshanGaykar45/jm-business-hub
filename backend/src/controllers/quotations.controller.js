@@ -203,8 +203,75 @@ async function convertToInvoice(req, res) {
   }
 }
 
+/**
+ * Update quotation status / notes
+ */
+async function updateQuotation(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.quotation.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Quotation not found' });
+
+    const updated = await prisma.quotation.update({
+      where: { id },
+      data: {
+        ...req.body,
+        updatedAt: new Date()
+      },
+      include: { customer: true, items: true }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'QUOTATION_UPDATE',
+      entityType: 'Quotation',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, quotation: updated });
+  } catch (error) {
+    console.error('Update Quotation Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update quotation' });
+  }
+}
+
+/**
+ * Delete quotation (Soft-delete)
+ */
+async function deleteQuotation(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.quotation.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Quotation not found' });
+
+    await prisma.quotation.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'QUOTATION_DELETE',
+      entityType: 'Quotation',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Quotation deleted successfully' });
+  } catch (error) {
+    console.error('Delete Quotation Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete quotation' });
+  }
+}
+
 module.exports = {
   getQuotations,
   createQuotation,
+  updateQuotation,
+  deleteQuotation,
   convertToInvoice
 };

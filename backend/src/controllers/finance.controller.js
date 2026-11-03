@@ -148,11 +148,7 @@ async function createIncome(req, res) {
 async function deleteIncome(req, res) {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
-
-    if (!reason || reason.trim().length < 3) {
-      return res.status(400).json({ error: 'ValidationError', message: 'A valid reason for deletion is required' });
-    }
+    const reason = req.body?.reason || 'Record cancelled by administrator';
 
     const existing = await prisma.income.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Income record not found' });
@@ -248,11 +244,7 @@ async function createExpense(req, res) {
 async function deleteExpense(req, res) {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
-
-    if (!reason || reason.trim().length < 3) {
-      return res.status(400).json({ error: 'ValidationError', message: 'A valid reason for deletion is required' });
-    }
+    const reason = req.body?.reason || 'Record cancelled by administrator';
 
     const existing = await prisma.expense.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Expense record not found' });

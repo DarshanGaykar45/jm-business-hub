@@ -8,6 +8,9 @@ router.use(authenticate);
 
 router.get('/', authorize('equipment', 'read'), vehiclesController.getVehicles);
 router.post('/', authorize('equipment', 'create'), vehiclesController.createVehicle);
+router.put('/:id', authorize('equipment', 'update'), vehiclesController.updateVehicle);
+router.delete('/:id', authorize('equipment', 'delete'), vehiclesController.deleteVehicle);
 router.post('/:id/expenses', authorize('financials', 'create'), vehiclesController.logVehicleExpense);
+router.delete('/:id/expenses/:expenseId', authorize('financials', 'delete'), vehiclesController.deleteVehicleExpense);
 
 module.exports = router;

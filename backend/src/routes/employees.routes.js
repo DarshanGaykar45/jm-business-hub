@@ -11,5 +11,6 @@ router.get('/:id', authorize('employees', 'read'), employeesController.getEmploy
 router.post('/', authorize('employees', 'create'), employeesController.createEmployee);
 router.put('/:id', authorize('employees', 'update'), employeesController.updateEmployee);
 router.patch('/:id/deactivate', authorize('employees', 'delete'), employeesController.deactivateEmployee);
+router.delete('/:id', authorize('employees', 'delete'), employeesController.deactivateEmployee);
 
 module.exports = router;

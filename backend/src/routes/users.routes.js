@@ -9,6 +9,8 @@ router.use(authenticate);
 router.get('/', authorize('users', 'read'), usersController.getUsers);
 router.post('/', authorize('users', 'create'), usersController.createUser);
 router.patch('/:id/status', authorize('users', 'update'), usersController.toggleUserStatus);
+router.put('/:id/toggle-status', authorize('users', 'update'), usersController.toggleUserStatus);
+router.delete('/:id', authorize('users', 'delete'), usersController.deleteUser);
 router.get('/audit-logs', authorize('audit_logs', 'read'), usersController.getAuditLogs);
 
 module.exports = router;

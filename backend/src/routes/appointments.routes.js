@@ -9,5 +9,7 @@ router.use(authenticate);
 router.get('/', appointmentsController.getAppointments);
 router.post('/', appointmentsController.createAppointment);
 router.put('/:id', appointmentsController.updateAppointment);
+router.patch('/:id', appointmentsController.updateAppointment);
+router.delete('/:id', appointmentsController.deleteAppointment);
 
 module.exports = router;

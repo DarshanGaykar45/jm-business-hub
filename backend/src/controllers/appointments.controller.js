@@ -49,10 +49,19 @@ async function createAppointment(req, res) {
     const parse = appointmentSchema.safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: 'ValidationError', message: parse.error.errors[0]?.message });
 
+    const data = parse.data;
     const appointment = await prisma.appointment.create({
       data: {
-        ...parse.data,
-        dateTime: new Date(parse.data.dateTime)
+        title: data.title,
+        type: data.type,
+        businessDivision: data.businessDivision,
+        dateTime: new Date(data.dateTime),
+        location: data.location,
+        contactPerson: data.contactPerson || null,
+        contactPhone: data.contactPhone || null,
+        assignedEmployeeId: data.assignedEmployeeId ? data.assignedEmployeeId : null,
+        notes: data.notes || null,
+        status: data.status || 'Scheduled'
       },
       include: { assignedEmployee: true }
     });
@@ -96,8 +105,36 @@ async function updateAppointment(req, res) {
   }
 }
 
+/**
+ * Delete appointment
+ */
+async function deleteAppointment(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.appointment.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Appointment not found' });
+
+    await prisma.appointment.delete({ where: { id } });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'APPOINTMENT_DELETE',
+      entityType: 'Appointment',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Appointment cancelled and removed' });
+  } catch (error) {
+    console.error('Delete Appointment Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete appointment' });
+  }
+}
+
 module.exports = {
   getAppointments,
   createAppointment,
-  updateAppointment
+  updateAppointment,
+  deleteAppointment
 };

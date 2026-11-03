@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import api from '../../api/client';
 import { useToast } from '../../components/Toast';
-import { Car, Plus, Fuel, Wrench, Calendar, AlertCircle } from 'lucide-react';
+import { Car, Plus, Fuel, Wrench, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 
 export default function VehicleEquipment() {
@@ -66,6 +66,17 @@ export default function VehicleEquipment() {
       fetchVehicles();
     } catch (err) {
       toast.error('Failed to log expense');
+    }
+  };
+
+  const handleDeleteVehicle = async (id, regNo) => {
+    if (!window.confirm(`Are you sure you want to remove vehicle ${regNo} from the logistics fleet?`)) return;
+    try {
+      await api.delete(`/vehicles/${id}`);
+      toast.success(`Vehicle ${regNo} deleted successfully.`);
+      fetchVehicles();
+    } catch (err) {
+      toast.error('Failed to delete vehicle');
     }
   };
 
@@ -139,6 +150,13 @@ export default function VehicleEquipment() {
                 >
                   <Fuel className="w-3.5 h-3.5 text-amber-400" />
                   <span>Log Fuel / Service</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteVehicle(v.id, v.registrationNo)}
+                  title="Remove vehicle"
+                  className="p-2 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>

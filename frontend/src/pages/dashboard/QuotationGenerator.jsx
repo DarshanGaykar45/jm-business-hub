@@ -107,6 +107,17 @@ export default function QuotationGenerator() {
     }
   };
 
+  const handleDeleteQuotation = async (id, quotationNumber) => {
+    if (!window.confirm(`Are you sure you want to delete quotation ${quotationNumber}?`)) return;
+    try {
+      await api.delete(`/quotations/${id}`);
+      toast.success(`Quotation ${quotationNumber} deleted successfully.`);
+      fetchQuotations();
+    } catch (err) {
+      toast.error('Failed to delete quotation');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Helmet>
@@ -201,6 +212,13 @@ export default function QuotationGenerator() {
                           Convert to Invoice
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteQuotation(q.id, q.quotationNumber)}
+                        className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition inline-flex items-center"
+                        title="Delete Quotation"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))

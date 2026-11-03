@@ -103,8 +103,39 @@ async function updateEquipment(req, res) {
   }
 }
 
+/**
+ * Delete equipment (Soft-delete)
+ */
+async function deleteEquipment(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.equipment.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Equipment not found' });
+
+    await prisma.equipment.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'EQUIPMENT_DELETE',
+      entityType: 'Equipment',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Equipment removed from fleet' });
+  } catch (error) {
+    console.error('Delete Equipment Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete equipment' });
+  }
+}
+
 module.exports = {
   getEquipment,
   createEquipment,
-  updateEquipment
+  updateEquipment,
+  deleteEquipment
 };

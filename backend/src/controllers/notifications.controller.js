@@ -59,8 +59,20 @@ async function markAllAsRead(req, res) {
   }
 }
 
+async function deleteNotification(req, res) {
+  try {
+    const { id } = req.params;
+    await prisma.notification.delete({ where: { id } });
+    return res.json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    console.error('Delete Notification Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete notification' });
+  }
+}
+
 module.exports = {
   getNotifications,
   markAsRead,
-  markAllAsRead
+  markAllAsRead,
+  deleteNotification
 };

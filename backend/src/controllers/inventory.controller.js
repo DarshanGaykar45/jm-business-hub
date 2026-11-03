@@ -30,9 +30,9 @@ async function getInventory(req, res) {
     }
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { category: { contains: search } },
-        { supplier: { contains: search } }
+        { name: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } },
+        { supplier: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -339,9 +339,79 @@ async function getItemTransactions(req, res) {
   }
 }
 
+/**
+ * Update inventory item details
+ */
+async function updateInventoryItem(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.inventoryItem.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Inventory item not found' });
+
+    const updated = await prisma.inventoryItem.update({
+      where: { id },
+      data: {
+        ...req.body,
+        quantity: req.body.quantity !== undefined ? Number(req.body.quantity) : existing.quantity,
+        purchasePrice: req.body.purchasePrice !== undefined ? Number(req.body.purchasePrice) : existing.purchasePrice,
+        sellingPrice: req.body.sellingPrice !== undefined ? Number(req.body.sellingPrice) : existing.sellingPrice,
+        minStockLevel: req.body.minStockLevel !== undefined ? Number(req.body.minStockLevel) : existing.minStockLevel,
+        updatedAt: new Date()
+      }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'INVENTORY_UPDATE',
+      entityType: 'InventoryItem',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, item: updated });
+  } catch (error) {
+    console.error('Update Inventory Item Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update inventory item' });
+  }
+}
+
+/**
+ * Delete inventory item (Soft-delete)
+ */
+async function deleteInventoryItem(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.inventoryItem.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Inventory item not found' });
+
+    await prisma.inventoryItem.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'INVENTORY_DELETE',
+      entityType: 'InventoryItem',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Inventory item removed successfully' });
+  } catch (error) {
+    console.error('Delete Inventory Item Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete inventory item' });
+  }
+}
+
 module.exports = {
   getInventory,
   createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
   stockIn,
   stockOut,
   adjustStock,

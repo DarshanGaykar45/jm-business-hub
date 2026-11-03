@@ -9,6 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed:demo": "node src/seed/seed.js",
+    "seed:nashik": "node src/seed/seed_nashik_data.js",
     "seed:reset": "node src/seed/reset.js"
   },
   "keywords": [

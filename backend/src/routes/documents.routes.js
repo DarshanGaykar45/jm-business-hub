@@ -9,5 +9,6 @@ router.use(authenticate);
 router.get('/', authorize('documents', 'read'), documentsController.getDocuments);
 router.post('/', authorize('documents', 'create'), documentsController.createDocument);
 router.get('/:id/download', authorize('documents', 'read'), documentsController.downloadDocument);
+router.delete('/:id', authorize('documents', 'delete'), documentsController.deleteDocument);
 
 module.exports = router;

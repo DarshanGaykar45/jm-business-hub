@@ -108,8 +108,69 @@ async function updateTaskStatus(req, res) {
   }
 }
 
+async function updateTask(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.task.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Task not found' });
+
+    const updated = await prisma.task.update({
+      where: { id },
+      data: {
+        ...req.body,
+        employeeId: req.body.employeeId ? req.body.employeeId : null,
+        projectId: req.body.projectId ? req.body.projectId : null,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+        updatedAt: new Date()
+      },
+      include: { employee: true, project: true }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'TASK_UPDATE',
+      entityType: 'Task',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, task: updated });
+  } catch (error) {
+    console.error('Update Task Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update task' });
+  }
+}
+
+async function deleteTask(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.task.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Task not found' });
+
+    await prisma.task.delete({ where: { id } });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'TASK_DELETE',
+      entityType: 'Task',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Delete Task Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete task' });
+  }
+}
+
 module.exports = {
   getTasks,
   createTask,
-  updateTaskStatus
+  updateTaskStatus,
+  updateTask,
+  deleteTask
 };

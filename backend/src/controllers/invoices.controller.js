@@ -191,8 +191,79 @@ async function recordPayment(req, res) {
   }
 }
 
+/**
+ * Update invoice status or fields
+ */
+async function updateInvoice(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.invoice.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Invoice not found' });
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: {
+        ...req.body,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+        updatedAt: new Date()
+      },
+      include: { customer: true, items: true, payments: true }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'INVOICE_UPDATE',
+      entityType: 'Invoice',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, invoice: updated });
+  } catch (error) {
+    console.error('Update Invoice Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update invoice' });
+  }
+}
+
+/**
+ * Delete / cancel invoice (Soft-delete)
+ */
+async function deleteInvoice(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.invoice.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Invoice not found' });
+
+    await prisma.invoice.update({
+      where: { id },
+      data: {
+        paymentStatus: 'Cancelled',
+        deletedAt: new Date()
+      }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'INVOICE_CANCEL_DELETE',
+      entityType: 'Invoice',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Invoice cancelled and removed successfully' });
+  } catch (error) {
+    console.error('Delete Invoice Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete invoice' });
+  }
+}
+
 module.exports = {
   getInvoices,
   createInvoice,
+  updateInvoice,
+  deleteInvoice,
   recordPayment
 };

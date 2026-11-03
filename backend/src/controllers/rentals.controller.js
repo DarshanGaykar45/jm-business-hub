@@ -201,9 +201,88 @@ async function updateRentalPayment(req, res) {
   }
 }
 
+/**
+ * Update rental contract details
+ */
+async function updateRental(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.rental.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Rental record not found' });
+
+    const updated = await prisma.rental.update({
+      where: { id },
+      data: {
+        ...req.body,
+        rentalStart: req.body.rentalStart ? new Date(req.body.rentalStart) : undefined,
+        expectedReturn: req.body.expectedReturn ? new Date(req.body.expectedReturn) : undefined,
+        rentalAmount: req.body.rentalAmount !== undefined ? Number(req.body.rentalAmount) : undefined,
+        depositAmount: req.body.depositAmount !== undefined ? Number(req.body.depositAmount) : undefined,
+        updatedAt: new Date()
+      },
+      include: { equipment: true, customer: true }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'RENTAL_UPDATE',
+      entityType: 'Rental',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, rental: updated });
+  } catch (error) {
+    console.error('Update Rental Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update rental' });
+  }
+}
+
+/**
+ * Delete rental (Soft-delete)
+ */
+async function deleteRental(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.rental.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Rental record not found' });
+
+    // If active rental is deleted, free the equipment back to 'Available'
+    if (!existing.actualReturn) {
+      await prisma.equipment.update({
+        where: { id: existing.equipmentId },
+        data: { status: 'Available', updatedAt: new Date() }
+      });
+    }
+
+    await prisma.rental.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'RENTAL_DELETE',
+      entityType: 'Rental',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Rental record deleted successfully' });
+  } catch (error) {
+    console.error('Delete Rental Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete rental' });
+  }
+}
+
 module.exports = {
   getRentals,
   createRental,
+  updateRental,
+  deleteRental,
   recordReturn,
   updateRentalPayment
 };

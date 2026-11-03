@@ -38,10 +38,10 @@ async function getEmployees(req, res) {
     }
     if (search) {
       where.OR = [
-        { name: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
-        { employeeId: { contains: search } },
-        { role: { contains: search } }
+        { employeeId: { contains: search, mode: 'insensitive' } },
+        { role: { contains: search, mode: 'insensitive' } }
       ];
     }
 

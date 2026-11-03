@@ -10,5 +10,6 @@ router.get('/', authorize('customers', 'read'), customersController.getCustomers
 router.get('/:id', authorize('customers', 'read'), customersController.getCustomerById);
 router.post('/', authorize('customers', 'create'), customersController.createCustomer);
 router.put('/:id', authorize('customers', 'update'), customersController.updateCustomer);
+router.delete('/:id', authorize('customers', 'delete'), customersController.deleteCustomer);
 
 module.exports = router;

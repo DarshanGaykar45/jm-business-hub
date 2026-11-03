@@ -5,7 +5,7 @@ import api from '../../api/client';
 import { useToast } from '../../components/Toast';
 import {
   CalendarDays, Plus, Search, Clock, MapPin, User, Phone,
-  CheckCircle2, AlertCircle, XCircle, Calendar, Filter
+  CheckCircle2, AlertCircle, XCircle, Calendar, Filter, Trash2
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import Badge from '../../components/Badge';
@@ -105,6 +105,17 @@ export default function Appointments() {
       fetchAppointments();
     } catch (err) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleDeleteAppointment = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to delete appointment "${title}"?`)) return;
+    try {
+      await api.delete(`/appointments/${id}`);
+      toast.success('Appointment deleted successfully');
+      fetchAppointments();
+    } catch (err) {
+      toast.error('Failed to delete appointment');
     }
   };
 
@@ -306,30 +317,39 @@ export default function Appointments() {
 
                 {/* Status Actions */}
                 <div className="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-                  {apt.status === 'Scheduled' && (
-                    <>
+                  <div className="flex items-center gap-2">
+                    {apt.status === 'Scheduled' && (
+                      <>
+                        <button
+                          onClick={() => updateStatus(apt.id, 'Completed')}
+                          className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
+                        </button>
+                        <button
+                          onClick={() => updateStatus(apt.id, 'Cancelled')}
+                          className="text-red-400 hover:text-red-300 font-medium flex items-center gap-1"
+                        >
+                          <XCircle className="w-3.5 h-3.5" /> Cancel
+                        </button>
+                      </>
+                    )}
+                    {apt.status !== 'Scheduled' && (
                       <button
-                        onClick={() => updateStatus(apt.id, 'Completed')}
-                        className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
+                        onClick={() => updateStatus(apt.id, 'Scheduled')}
+                        className="text-slate-400 hover:text-slate-200 font-medium"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
+                        Re-open
                       </button>
-                      <button
-                        onClick={() => updateStatus(apt.id, 'Cancelled')}
-                        className="text-red-400 hover:text-red-300 font-medium flex items-center gap-1"
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> Cancel
-                      </button>
-                    </>
-                  )}
-                  {apt.status !== 'Scheduled' && (
-                    <button
-                      onClick={() => updateStatus(apt.id, 'Scheduled')}
-                      className="text-slate-400 hover:text-slate-200 font-medium"
-                    >
-                      Re-open
-                    </button>
-                  )}
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteAppointment(apt.id, apt.title)}
+                    className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
+                    title="Delete Appointment"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             );

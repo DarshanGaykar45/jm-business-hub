@@ -6,7 +6,7 @@ import api from '../../api/client';
 import { useToast } from '../../components/Toast';
 import {
   ListTodo, Plus, Search, CheckCircle2, Clock, AlertTriangle,
-  Calendar, User, FolderKanban, Filter, ChevronRight, ArrowRight, Check
+  Calendar, User, FolderKanban, Filter, ChevronRight, ArrowRight, Check, Trash2
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import Badge from '../../components/Badge';
@@ -106,6 +106,17 @@ export default function TaskPlanner() {
       fetchTasks();
     } catch (err) {
       toast.error('Failed to update task status');
+    }
+  };
+
+  const handleDeleteTask = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to delete task "${title}"?`)) return;
+    try {
+      await api.delete(`/tasks/${id}`);
+      toast.success('Task deleted successfully');
+      fetchTasks();
+    } catch (err) {
+      toast.error('Failed to delete task');
     }
   };
 
@@ -335,6 +346,13 @@ export default function TaskPlanner() {
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                   </select>
+                  <button
+                    onClick={() => handleDeleteTask(task.id, task.title)}
+                    className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
+                    title="Delete Task"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))
@@ -494,39 +512,48 @@ export default function TaskPlanner() {
         </div>
 
         {/* Quick Transition buttons */}
-        <div className="pt-2 flex items-center justify-end gap-1.5 border-t border-slate-800/60">
-          {currentColStatus === 'Pending' && (
-            <button
-              onClick={() => updateTaskStatus(task.id, 'In Progress')}
-              className="px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[11px] font-medium transition-colors"
-            >
-              Start →
-            </button>
-          )}
-          {currentColStatus === 'In Progress' && (
-            <>
+        <div className="pt-2 flex items-center justify-between gap-1.5 border-t border-slate-800/60">
+          <button
+            onClick={() => handleDeleteTask(task.id, task.title)}
+            className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
+            title="Delete Task"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {currentColStatus === 'Pending' && (
               <button
-                onClick={() => updateTaskStatus(task.id, 'Pending')}
+                onClick={() => updateTaskStatus(task.id, 'In Progress')}
+                className="px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[11px] font-medium transition-colors"
+              >
+                Start →
+              </button>
+            )}
+            {currentColStatus === 'In Progress' && (
+              <>
+                <button
+                  onClick={() => updateTaskStatus(task.id, 'Pending')}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[11px] font-medium transition-colors"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={() => updateTaskStatus(task.id, 'Completed')}
+                  className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[11px] font-medium transition-colors"
+                >
+                  Complete ✓
+                </button>
+              </>
+            )}
+            {currentColStatus === 'Completed' && (
+              <button
+                onClick={() => updateTaskStatus(task.id, 'In Progress')}
                 className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[11px] font-medium transition-colors"
               >
-                ← Back
+                Reopen
               </button>
-              <button
-                onClick={() => updateTaskStatus(task.id, 'Completed')}
-                className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[11px] font-medium transition-colors"
-              >
-                Complete ✓
-              </button>
-            </>
-          )}
-          {currentColStatus === 'Completed' && (
-            <button
-              onClick={() => updateTaskStatus(task.id, 'In Progress')}
-              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[11px] font-medium transition-colors"
-            >
-              Reopen
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );

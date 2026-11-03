@@ -88,8 +88,92 @@ async function logVehicleExpense(req, res) {
   }
 }
 
+/**
+ * Update vehicle details
+ */
+async function updateVehicle(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.vehicle.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Vehicle not found' });
+
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        ...req.body,
+        registrationNo: req.body.registrationNo ? req.body.registrationNo.toUpperCase() : undefined,
+        lastServiceDate: req.body.lastServiceDate ? new Date(req.body.lastServiceDate) : undefined,
+        nextServiceDate: req.body.nextServiceDate ? new Date(req.body.nextServiceDate) : undefined,
+        updatedAt: new Date()
+      }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'VEHICLE_UPDATE',
+      entityType: 'Vehicle',
+      entityId: id,
+      beforeJson: existing,
+      afterJson: updated,
+      req
+    });
+
+    return res.json({ success: true, vehicle: updated });
+  } catch (error) {
+    console.error('Update Vehicle Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to update vehicle' });
+  }
+}
+
+/**
+ * Delete vehicle (Soft-delete)
+ */
+async function deleteVehicle(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.vehicle.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'NotFound', message: 'Vehicle not found' });
+
+    await prisma.vehicle.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'VEHICLE_DELETE',
+      entityType: 'Vehicle',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Vehicle deleted from logistics fleet' });
+  } catch (error) {
+    console.error('Delete Vehicle Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete vehicle' });
+  }
+}
+
+/**
+ * Delete vehicle expense
+ */
+async function deleteVehicleExpense(req, res) {
+  try {
+    const { expenseId } = req.params;
+    await prisma.vehicleExpense.delete({ where: { id: expenseId } });
+    return res.json({ success: true, message: 'Expense record deleted' });
+  } catch (error) {
+    console.error('Delete Vehicle Expense Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete expense' });
+  }
+}
+
 module.exports = {
   getVehicles,
   createVehicle,
-  logVehicleExpense
+  updateVehicle,
+  deleteVehicle,
+  logVehicleExpense,
+  deleteVehicleExpense
 };

@@ -34,9 +34,9 @@ async function getProjects(req, res) {
     }
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { location: { contains: search } },
-        { customer: { name: { contains: search } } }
+        { name: { contains: search, mode: 'insensitive' } },
+        { location: { contains: search, mode: 'insensitive' } },
+        { customer: { name: { contains: search, mode: 'insensitive' } } }
       ];
     }
 

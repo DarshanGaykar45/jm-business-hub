@@ -5,7 +5,7 @@ import api from '../../api/client';
 import { useToast } from '../../components/Toast';
 import {
   Shield, UserPlus, Search, UserCheck, UserX, Clock,
-  KeyRound, ShieldAlert, History, Filter, CheckCircle2, AlertCircle
+  KeyRound, ShieldAlert, History, Filter, CheckCircle2, AlertCircle, Trash2
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import Badge from '../../components/Badge';
@@ -103,6 +103,21 @@ export default function UserManagement() {
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update account status');
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (user.id === currentUser?.id) {
+      toast.error('You cannot delete your own active account.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to completely remove user "${user.name}" (${user.email})?`)) return;
+    try {
+      await api.delete(`/users/${user.id}`);
+      toast.success(`User ${user.name} removed successfully.`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -266,18 +281,27 @@ export default function UserManagement() {
                         <td className="px-6 py-4 text-xs text-slate-400">
                           {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                           {u.id !== currentUser?.id && (
-                            <button
-                              onClick={() => handleToggleStatus(u)}
-                              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                                u.isActive
-                                  ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                              }`}
-                            >
-                              {u.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleToggleStatus(u)}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                                  u.isActive
+                                    ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                }`}
+                              >
+                                {u.isActive ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u)}
+                                className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition inline-flex items-center"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
                           )}
                         </td>
                       </tr>

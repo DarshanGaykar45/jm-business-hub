@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useBusinessDivision } from '../../context/BusinessDivisionContext';
 import api from '../../api/client';
 import { useToast } from '../../components/Toast';
-import { Truck, Plus, Search, CheckCircle, AlertTriangle, Clock, RefreshCw, IndianRupee } from 'lucide-react';
+import { Truck, Plus, Search, CheckCircle, AlertTriangle, Clock, RefreshCw, IndianRupee, Trash2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 
 export default function RentalTracking() {
@@ -105,6 +105,18 @@ export default function RentalTracking() {
       fetchDropdowns();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to record return');
+    }
+  };
+
+  const handleDeleteRental = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this rental record?')) return;
+    try {
+      await api.delete(`/rentals/${id}`);
+      toast.success('Rental record deleted successfully');
+      fetchRentals();
+      fetchDropdowns();
+    } catch (err) {
+      toast.error('Failed to delete rental record');
     }
   };
 
@@ -211,18 +223,27 @@ export default function RentalTracking() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {!isReturned ? (
+                        <div className="flex items-center justify-end gap-2">
+                          {!isReturned ? (
+                            <button
+                              onClick={() => { setSelectedRental(r); setIsReturnModalOpen(true); }}
+                              className="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg text-xs font-bold transition"
+                            >
+                              Record Return
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-500 font-mono">
+                              {new Date(r.actualReturn).toLocaleDateString('en-IN')}
+                            </span>
+                          )}
                           <button
-                            onClick={() => { setSelectedRental(r); setIsReturnModalOpen(true); }}
-                            className="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg text-xs font-bold transition"
+                            onClick={() => handleDeleteRental(r.id)}
+                            className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 border border-red-800/40 rounded-lg transition"
+                            title="Delete Rental Record"
                           >
-                            Record Return
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        ) : (
-                          <span className="text-xs text-slate-500 font-mono">
-                            {new Date(r.actualReturn).toLocaleDateString('en-IN')}
-                          </span>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );

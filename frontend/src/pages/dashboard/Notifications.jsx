@@ -61,6 +61,16 @@ export default function Notifications() {
     }
   };
 
+  const handleDeleteNotification = async (id) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success('Notification removed');
+    } catch (err) {
+      toast.error('Failed to delete notification');
+    }
+  };
+
   const getNotificationIcon = (title, type) => {
     const text = (title + ' ' + (type || '')).toLowerCase();
     if (text.includes('lead') || text.includes('customer')) {
@@ -188,15 +198,24 @@ export default function Notifications() {
                 )}
               </div>
 
-              {!notif.isRead && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {!notif.isRead && (
+                  <button
+                    onClick={() => markAsRead(notif.id)}
+                    className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors"
+                    title="Mark as read"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                )}
                 <button
-                  onClick={() => markAsRead(notif.id)}
-                  className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-                  title="Mark as read"
+                  onClick={() => handleDeleteNotification(notif.id)}
+                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                  title="Dismiss notification"
                 >
-                  <Check className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
-              )}
+              </div>
             </div>
           ))
         )}

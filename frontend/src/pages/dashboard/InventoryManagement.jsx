@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useBusinessDivision } from '../../context/BusinessDivisionContext';
 import api from '../../api/client';
 import { useToast } from '../../components/Toast';
-import { Package, Plus, ArrowDownLeft, ArrowUpRight, Sliders, History, AlertTriangle, Search } from 'lucide-react';
+import { Package, Plus, ArrowDownLeft, ArrowUpRight, Sliders, History, AlertTriangle, Search, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 
 export default function InventoryManagement() {
@@ -17,12 +17,14 @@ export default function InventoryManagement() {
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStockInModalOpen, setIsStockInModalOpen] = useState(false);
   const [isStockOutModalOpen, setIsStockOutModalOpen] = useState(false);
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
   const [txns, setTxns] = useState([]);
   const [actionQty, setActionQty] = useState(10);
   const [actionReason, setActionReason] = useState('');
@@ -136,6 +138,50 @@ export default function InventoryManagement() {
       setTxns(res.data.transactions || []);
     } catch (e) {
       toast.error('Failed to load transaction history');
+    }
+  };
+
+  const handleEditClick = (item) => {
+    setSelectedItem(item);
+    setEditFormData({
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      purchasePrice: item.purchasePrice || 0,
+      sellingPrice: item.sellingPrice || 0,
+      minStockLevel: item.minStockLevel || 10,
+      supplier: item.supplier || '',
+      businessDivision: item.businessDivision || 'suppliers'
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!selectedItem) return;
+    try {
+      await api.put(`/inventory/${selectedItem.id}`, {
+        ...editFormData,
+        purchasePrice: Number(editFormData.purchasePrice),
+        sellingPrice: Number(editFormData.sellingPrice),
+        minStockLevel: Number(editFormData.minStockLevel)
+      });
+      toast.success('Inventory item updated successfully!');
+      setIsEditModalOpen(false);
+      fetchInventory();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update item');
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to remove "${name}" from inventory?`)) return;
+    try {
+      await api.delete(`/inventory/${id}`);
+      toast.success(`"${name}" removed from inventory.`);
+      fetchInventory();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete item');
     }
   };
 
@@ -275,6 +321,20 @@ export default function InventoryManagement() {
                           title="History"
                         >
                           <History className="w-3.5 h-3.5 inline" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(item)}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs transition"
+                          title="Edit Item Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 inline" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id, item.name)}
+                          className="px-2 py-1 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 border border-red-800/40 rounded-lg text-xs transition"
+                          title="Delete Item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 inline" />
                         </button>
                       </td>
                     </tr>
@@ -515,6 +575,80 @@ export default function InventoryManagement() {
           <div className="pt-4 flex justify-end gap-2">
             <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm">Cancel</button>
             <button type="submit" className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm shadow-md">Add Item</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Item Modal */}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Item: ${selectedItem?.name}`}>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Item Name *</label>
+              <input
+                type="text"
+                required
+                value={editFormData.name || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Category *</label>
+              <input
+                type="text"
+                required
+                value={editFormData.category || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Purchase Price (₹)</label>
+              <input
+                type="number"
+                value={editFormData.purchasePrice || 0}
+                onChange={(e) => setEditFormData({ ...editFormData, purchasePrice: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Selling Price (₹)</label>
+              <input
+                type="number"
+                value={editFormData.sellingPrice || 0}
+                onChange={(e) => setEditFormData({ ...editFormData, sellingPrice: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Min Stock Threshold</label>
+              <input
+                type="number"
+                value={editFormData.minStockLevel || 10}
+                onChange={(e) => setEditFormData({ ...editFormData, minStockLevel: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Supplier / Sourcing Location</label>
+            <input
+              type="text"
+              placeholder="e.g. Sinnar Quarry Unit"
+              value={editFormData.supplier || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, supplier: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition">Cancel</button>
+            <button type="submit" className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm shadow-md transition">Save Changes</button>
           </div>
         </form>
       </Modal>

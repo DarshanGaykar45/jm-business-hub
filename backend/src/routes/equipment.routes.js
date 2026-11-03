@@ -9,5 +9,6 @@ router.use(authenticate);
 router.get('/', authorize('equipment', 'read'), equipmentController.getEquipment);
 router.post('/', authorize('equipment', 'create'), equipmentController.createEquipment);
 router.put('/:id', authorize('equipment', 'update'), equipmentController.updateEquipment);
+router.delete('/:id', authorize('equipment', 'delete'), equipmentController.deleteEquipment);
 
 module.exports = router;

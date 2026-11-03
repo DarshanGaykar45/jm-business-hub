@@ -61,12 +61,10 @@ async function getSummary(req, res, next) {
       }),
 
       // Low-stock items (quantity <= minStockLevel)
-      prisma.$queryRawUnsafe(
-        division
-          ? `SELECT COUNT(*) as count FROM InventoryItem WHERE quantity <= minStockLevel AND businessDivision = ? AND deletedAt IS NULL`
-          : `SELECT COUNT(*) as count FROM InventoryItem WHERE quantity <= minStockLevel AND deletedAt IS NULL`,
-        ...(division ? [division] : [])
-      ),
+      prisma.inventoryItem.findMany({
+        where: { ...divFilter, deletedAt: null },
+        select: { quantity: true, minStockLevel: true }
+      }),
 
       // Equipment currently rented
       prisma.equipment.count({
@@ -114,7 +112,9 @@ async function getSummary(req, res, next) {
 
     const todayIncome = todayIncomeResult._sum.amount || 0;
     const todayExpenses = todayExpenseResult._sum.amount || 0;
-    const lowStockCount = Number(lowStockItems?.[0]?.count || 0);
+    const lowStockCount = Array.isArray(lowStockItems)
+      ? lowStockItems.filter(item => item.quantity <= item.minStockLevel).length
+      : 0;
 
     res.json({
       todayIncome,

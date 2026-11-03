@@ -28,9 +28,9 @@ async function getCustomers(req, res) {
     }
     if (search) {
       where.OR = [
-        { name: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
-        { email: { contains: search } }
+        { email: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -162,9 +162,42 @@ async function updateCustomer(req, res) {
   }
 }
 
+/**
+ * Delete customer (Soft-delete)
+ */
+async function deleteCustomer(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.customer.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'NotFound', message: 'Customer not found' });
+    }
+
+    const updated = await prisma.customer.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'CUSTOMER_DELETE',
+      entityType: 'Customer',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Customer removed successfully' });
+  } catch (error) {
+    console.error('Delete Customer Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete customer' });
+  }
+}
+
 module.exports = {
   getCustomers,
   getCustomerById,
   createCustomer,
-  updateCustomer
+  updateCustomer,
+  deleteCustomer
 };

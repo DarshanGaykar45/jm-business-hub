@@ -17,9 +17,9 @@ async function getLeads(req, res) {
     }
     if (search) {
       where.OR = [
-        { name: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
-        { requirement: { contains: search } }
+        { requirement: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -141,8 +141,83 @@ async function convertLeadToCustomer(req, res) {
   }
 }
 
+/**
+ * Create Lead (Admin manual entry)
+ */
+async function createLead(req, res) {
+  try {
+    const { name, phone, email, businessDivision, requirement, preferredTime, source, notes, status, followUpDate } = req.body;
+    if (!name || !phone || !requirement) {
+      return res.status(400).json({ error: 'ValidationError', message: 'Name, phone, and requirement are required' });
+    }
+
+    const lead = await prisma.lead.create({
+      data: {
+        name,
+        phone,
+        email: email || null,
+        businessDivision: businessDivision || 'construction',
+        requirement,
+        preferredTime: preferredTime || 'Anytime',
+        source: source || 'Admin Entry',
+        status: status || 'NEW',
+        notes: notes || null,
+        followUpDate: followUpDate ? new Date(followUpDate) : null
+      }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'LEAD_CREATE',
+      entityType: 'Lead',
+      entityId: lead.id,
+      afterJson: lead,
+      req
+    });
+
+    return res.status(201).json({ success: true, lead });
+  } catch (error) {
+    console.error('Create Lead Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to create lead' });
+  }
+}
+
+/**
+ * Delete Lead (Soft-delete)
+ */
+async function deleteLead(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.lead.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'NotFound', message: 'Lead not found' });
+    }
+
+    await prisma.lead.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    await logAudit({
+      actorUserId: req.user.id,
+      action: 'LEAD_DELETE',
+      entityType: 'Lead',
+      entityId: id,
+      beforeJson: existing,
+      req
+    });
+
+    return res.json({ success: true, message: 'Lead deleted successfully' });
+  } catch (error) {
+    console.error('Delete Lead Error:', error);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to delete lead' });
+  }
+}
+
 module.exports = {
   getLeads,
+  createLead,
   updateLead,
+  deleteLead,
   convertLeadToCustomer
 };

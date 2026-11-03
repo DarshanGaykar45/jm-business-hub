@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useBusinessDivision } from '../../context/BusinessDivisionContext';
 import api from '../../api/client';
 import { useToast } from '../../components/Toast';
-import { UserCircle, Plus, Search, Phone, Mail, MapPin, ExternalLink, ArrowRight } from 'lucide-react';
+import { UserCircle, Plus, Search, Phone, Mail, MapPin, Trash2, Edit2, CheckCircle2, Building } from 'lucide-react';
 import Modal from '../../components/Modal';
 
 export default function CustomerManagement() {
@@ -13,16 +13,23 @@ export default function CustomerManagement() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  const initialForm = {
     name: '',
     phone: '',
     email: '',
-    address: '',
+    address: 'Nashik, Maharashtra',
     businessDivision: 'construction',
     customerType: 'Contractor',
     notes: ''
-  });
+  };
+
+  const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
     fetchCustomers();
@@ -50,9 +57,50 @@ export default function CustomerManagement() {
       await api.post('/customers', formData);
       toast.success('Customer registered successfully!');
       setIsAddModalOpen(false);
+      setFormData(initialForm);
       fetchCustomers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create customer');
+    }
+  };
+
+  const handleEditClick = (cust) => {
+    setSelectedCustomer(cust);
+    setFormData({
+      name: cust.name,
+      phone: cust.phone,
+      email: cust.email || '',
+      address: cust.address || '',
+      businessDivision: cust.businessDivision || 'construction',
+      customerType: cust.customerType || 'Contractor',
+      notes: cust.notes || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+    try {
+      await api.put(`/customers/${selectedCustomer.id}`, formData);
+      toast.success('Customer details updated successfully!');
+      setIsEditModalOpen(false);
+      setSelectedCustomer(null);
+      setFormData(initialForm);
+      fetchCustomers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update customer');
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to remove customer "${name}"?`)) return;
+    try {
+      await api.delete(`/customers/${id}`);
+      toast.success(`Customer "${name}" removed successfully.`);
+      fetchCustomers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete customer');
     }
   };
 
@@ -70,33 +118,33 @@ export default function CustomerManagement() {
             <span>Customer Management (CRM)</span>
           </h1>
           <p className="text-sm text-slate-400">
-            Clients, contractors, and solar property owners across all business divisions.
+            Clients, contractors, developers, and solar property owners across Nashik region.
           </p>
         </div>
 
         <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center gap-2 text-sm shadow-lg shadow-amber-500/20 transition active:scale-95 self-start sm:self-auto"
+          onClick={() => { setFormData(initialForm); setIsAddModalOpen(true); }}
+          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl flex items-center gap-2 text-sm shadow-lg shadow-amber-500/20 transition active:scale-95 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Customer</span>
+          <span>Add New Customer</span>
         </button>
       </div>
 
       {/* Search toolbar */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
           <input
             type="text"
-            placeholder="Search customers by name, phone, email..."
+            placeholder="Search Nashik customers by name, phone, address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition"
           />
         </div>
         <div className="text-xs text-slate-400 font-medium">
-          Total: <span className="text-white font-bold">{customers.length}</span> clients
+          Total: <span className="text-white font-bold">{customers.length}</span> registered clients
         </div>
       </div>
 
@@ -109,15 +157,16 @@ export default function CustomerManagement() {
                 <th className="px-6 py-4">Customer Name & Type</th>
                 <th className="px-6 py-4">Phone / Email</th>
                 <th className="px-6 py-4">Division</th>
-                <th className="px-6 py-4">Address</th>
+                <th className="px-6 py-4">Nashik Address</th>
                 <th className="px-6 py-4 text-center">Linked Records</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {loading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">Loading customers...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-500">Loading customers...</td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No customers found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-500">No customers found. Click "Add New Customer" above to register.</td></tr>
               ) : (
                 customers.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-800/30 transition">
@@ -128,7 +177,10 @@ export default function CustomerManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-xs">
-                      <div className="text-white font-bold">{c.phone}</div>
+                      <div className="text-white font-bold flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-amber-400" />
+                        {c.phone}
+                      </div>
                       <div className="text-slate-500">{c.email || 'No email registered'}</div>
                     </td>
                     <td className="px-6 py-4">
@@ -137,7 +189,10 @@ export default function CustomerManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-400 max-w-xs truncate">
-                      {c.address || 'Nashik District'}
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                        <span>{c.address || 'Nashik District'}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="inline-flex gap-2 text-xs font-mono">
@@ -152,6 +207,24 @@ export default function CustomerManagement() {
                         </span>
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditClick(c)}
+                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition"
+                          title="Edit Customer"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id, c.name)}
+                          className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 border border-red-800/40 rounded-lg transition"
+                          title="Delete Customer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -161,11 +234,108 @@ export default function CustomerManagement() {
       </div>
 
       {/* Add Customer Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Register Customer">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Register New Customer">
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Customer Name *</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Customer / Company Name *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Nashik Infra Developers"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Phone Number *</label>
+              <input
+                type="tel"
+                required
+                placeholder="e.g. 9822123456"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
+              <input
+                type="email"
+                placeholder="client@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Customer Type</label>
+              <select
+                value={formData.customerType}
+                onChange={(e) => setFormData({ ...formData, customerType: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+              >
+                <option>Contractor</option>
+                <option>Commercial</option>
+                <option>Individual</option>
+                <option>Government</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Primary Division</label>
+            <select
+              value={formData.businessDivision}
+              onChange={(e) => setFormData({ ...formData, businessDivision: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+            >
+              <option value="construction">Construction Equipments</option>
+              <option value="solar">Sundatta Renewables (Solar)</option>
+              <option value="suppliers">Suppliers & Traders</option>
+              <option value="group">Group Wide</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Nashik Site / Office Address</label>
+            <textarea
+              rows={2}
+              placeholder="e.g. Plot No. 12, Ambad MIDC, Nashik - 422010"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 resize-none"
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm shadow-md transition"
+            >
+              Save Customer
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Customer Modal */}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Customer: ${selectedCustomer?.name}`}>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Customer / Company Name *</label>
               <input
                 type="text"
                 required
@@ -203,9 +373,9 @@ export default function CustomerManagement() {
                 onChange={(e) => setFormData({ ...formData, customerType: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
               >
-                <option>Individual</option>
                 <option>Contractor</option>
                 <option>Commercial</option>
+                <option>Individual</option>
                 <option>Government</option>
               </select>
             </div>
@@ -219,14 +389,14 @@ export default function CustomerManagement() {
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
             >
               <option value="construction">Construction Equipments</option>
-              <option value="solar">Sundatta Renewables</option>
+              <option value="solar">Sundatta Renewables (Solar)</option>
               <option value="suppliers">Suppliers & Traders</option>
               <option value="group">Group Wide</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Site / Office Address</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Nashik Site / Office Address</label>
             <textarea
               rows={2}
               value={formData.address}
@@ -238,16 +408,16 @@ export default function CustomerManagement() {
           <div className="pt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm"
+              onClick={() => setIsEditModalOpen(false)}
+              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm hover:bg-slate-700 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm shadow-md"
+              className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm shadow-md transition"
             >
-              Save Customer
+              Save Changes
             </button>
           </div>
         </form>
