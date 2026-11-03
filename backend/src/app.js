@@ -44,6 +44,7 @@ app.use(cors({
     if (
       env.NODE_ENV === 'development' ||
       origin === env.FRONTEND_URL ||
+      /\.vercel\.app$/.test(origin) ||
       /^http:\/\/localhost(:\d+)?$/.test(origin) ||
       /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
       /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin)
