@@ -4,11 +4,19 @@ const { v4: uuidv4 } = require('uuid');
 const prisma = require('../config/db');
 const { logAudit } = require('../utils/audit');
 
-const STORAGE_DIR = path.join(__dirname, '../../storage/private-documents');
+const os = require('os');
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const STORAGE_DIR = isServerless
+  ? path.join(os.tmpdir(), 'private-documents')
+  : path.join(__dirname, '../../storage/private-documents');
 
-// Ensure directory exists
-if (!fs.existsSync(STORAGE_DIR)) {
-  fs.mkdirSync(STORAGE_DIR, { recursive: true });
+// Ensure directory exists safely
+try {
+  if (!fs.existsSync(STORAGE_DIR)) {
+    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Storage directory initialization warning:', e.message);
 }
 
 /**
